@@ -743,7 +743,8 @@ function syncText(){return FB.err?FB.err:FB.syncAt?"已同步 "+pad2(FB.syncAt.g
 function onAuth(u){
   FB.user=u;FB.prof=null;TC.classes=null;TC.list=null;TC.sel=null;var na=document.getElementById("navacc");if(na)na.textContent=u?"帳號":"登入";
   if(!u){rerender();return}
-  db().collection("users").doc(u.uid).get().then(function(doc){
+  var slow=setTimeout(function(){if(FB.user===u&&!FB.prof){FB.err="連不上雲端資料庫。請確認 Firebase 已建立 Firestore Database，或檢查網路。";FB.prof={name:u.displayName||"",seat:"",cls:"",tch:""};rerender()}},12000);
+  db().collection("users").doc(u.uid).get().then(function(doc){clearTimeout(slow);
     var x=doc.exists?doc.data():{};FB.prof={name:x.name||u.displayName||"",seat:x.seat||"",cls:x.cls||"",tch:x.tch||""};
     mergeIn(x.d);pushNow();rerender();
   }).catch(function(e){FB.err="讀取雲端資料失敗："+e.message;FB.prof={name:u.displayName||"",seat:"",cls:"",tch:""};rerender()});
