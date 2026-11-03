@@ -121,6 +121,11 @@ p{margin:0}
 .week div{border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--sheet);font-size:14px}
 .week div b{display:block;margin-bottom:4px}
 details.wk{margin-bottom:8px}
+textarea.code{width:100%;font:13px/1.4 var(--f-mono);padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);word-break:break-all;margin-top:10px;resize:vertical}
+button.lnk{background:none;border:0;padding:0;font:inherit;color:var(--teal);text-decoration:underline;cursor:pointer;text-align:left}
+.ttbl td.bad{color:var(--red);font-weight:700}
+.ttbl tr.sel td{background:var(--teal-soft)}
+.ttbl{min-width:620px}
 details.wk summary{cursor:pointer;font-weight:700;padding:8px 0}
 .sprint-in{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .sprint-in input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);color:var(--ink)}
@@ -2568,8 +2573,71 @@ function progress(){
       h+='<tr><td><a href="#'+u.id+'">'+u.t+'</a></td><td class="num">'+(p==null?"—":Math.round(p*100)+"%")+'</td><td><div class="bar'+(p!=null&&p<0.6?" low":"")+'"><i style="width:'+(p==null?0:Math.round(p*100))+'%"></i></div></td><td class="num">'+(b==null?"—":b+" / 10")+'</td></tr>';
     });
   });
-  h+='</tbody></table></div></div></section>';
+  h+='</tbody></table></div></div>';
+  h+='<div class="sheet" id="share"><h2>傳給老師</h2><p class="muted" style="margin:4px 0 10px">輸入姓名後產生「成績碼」，複製傳給老師（LINE、訊息都可以）。成績碼只包含姓名、各單元答對率、模擬考分數和錯題數，不會自動上傳到任何地方。</p><div class="sprint-in"><input id="stn" placeholder="姓名或座號" maxlength="20" value="'+escA(LS.get("name",""))+'" aria-label="姓名"><button class="btn" id="mkc">產生成績碼</button></div><div id="codebox"></div></div>';
+  h+='<p class="muted" style="font-size:14px">我是老師：<a href="#teacher">打開教師頁</a>，貼上學生傳來的成績碼查看全班狀況。</p></section>';
   app.innerHTML=h;
+  document.getElementById("mkc").onclick=function(){
+    var n=document.getElementById("stn").value.trim(),box=document.getElementById("codebox");
+    if(!n){box.innerHTML='<p class="muted" style="margin-top:8px">請先輸入姓名或座號。</p>';return}
+    LS.set("name",n);var c=makeCode(n);
+    box.innerHTML='<textarea class="code" readonly rows="4" aria-label="成績碼">'+c+'</textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn" id="cpc">複製成績碼</button>'+(navigator.share?'<button class="btn ghost" id="shc">分享</button>':'')+'<span class="muted" id="cpn" style="align-self:center;font-size:14px"></span></div>';
+    var ta=box.querySelector("textarea");
+    document.getElementById("cpc").onclick=function(){ta.select();var ok=false;try{if(navigator.clipboard){navigator.clipboard.writeText(c);ok=true}else ok=document.execCommand("copy")}catch(e){}document.getElementById("cpn").textContent=ok?"已複製，貼給老師就好。":"請長按文字框手動複製。"};
+    var sh=document.getElementById("shc");if(sh)sh.onclick=function(){navigator.share({text:n+" 的會考數學成績碼：\n"+c}).catch(function(){})};
+  };
+}
+function escA(s){return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")}
+function escH(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function b64e(s){return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
+function b64d(s){s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";return decodeURIComponent(escape(atob(s)))}
+function makeCode(n){
+  var st=LS.get("stat",{}),s={},b={};
+  UNITS.forEach(function(u){if(st[u.id])s[u.id]=[st[u.id].r,st[u.id].t];var x=best(u.id);if(x!=null)b[u.id]=x});
+  var o={v:1,n:n,d:today(),s:s,b:b,m:LS.get("mockhist",[]).slice(-10).map(function(h){return h.score}),w:Object.keys(LS.get("wb",{})).length,e:LS.get("exam","")||""};
+  return "HKM1."+b64e(JSON.stringify(o));
+}
+function parseCodes(txt){
+  var out=[],bad=0;(String(txt).match(/HKM1\.[A-Za-z0-9_-]+/g)||[]).forEach(function(c){
+    try{var o=JSON.parse(b64d(c.slice(5)));if(o&&o.v===1&&typeof o.n==="string"&&o.s)out.push(o);else bad++}catch(e){bad++}});
+  return {list:out,bad:bad};
+}
+function sAcc(o){var r=0,t=0;Object.keys(o.s).forEach(function(k){r+=o.s[k][0];t+=o.s[k][1]});return {r:r,t:t,p:t?r/t:null}}
+function sWeak(o){return Object.keys(o.s).filter(function(k){return byId[k]&&o.s[k][1]>=3}).sort(function(a,b){return o.s[a][0]/o.s[a][1]-o.s[b][0]/o.s[b][1]}).slice(0,3)}
+var tSel=null;
+function teacher(){
+  var cls=LS.get("class",{}),names=Object.keys(cls).sort(function(a,b){return a.localeCompare(b,"zh-Hant",{numeric:true})});
+  var h='<section class="stack"><div><p class="eyebrow">教師頁</p><h1>全班學習狀況</h1><p class="muted" style="margin-top:8px">請學生到「進度」頁最下面產生成績碼傳給你，把收到的訊息整段貼在下面（一次貼很多個也可以）。同一位學生再傳一次，會更新成最新的成績。資料只存在你這台裝置。</p></div>';
+  h+='<div class="sheet"><textarea class="code" id="tin" rows="4" placeholder="貼上成績碼（HKM1. 開頭）" aria-label="貼上成績碼"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center"><button class="btn" id="tadd">加入</button><span class="muted" id="tmsg" style="font-size:14px"></span></div></div>';
+  if(!names.length){app.innerHTML=h+'<p class="muted">還沒有學生資料。</p></section>';bindT();return}
+  var all=names.map(function(n){return cls[n]});
+  var accs=all.map(sAcc).filter(function(a){return a.p!=null}),avg=accs.length?Math.round(accs.reduce(function(x,a){return x+a.p},0)/accs.length*100):null;
+  var lastM=all.map(function(o){return o.m.length?o.m[o.m.length-1]:null}).filter(function(x){return x!=null}),mavg=lastM.length?Math.round(lastM.reduce(function(a,b){return a+b},0)/lastM.length):null;
+  h+='<div class="tiles"><div class="tile"><span>學生人數</span><b>'+names.length+'</b></div><div class="tile"><span>全班平均答對率</span><b>'+(avg==null?"—":avg+'<small>%</small>')+'</b></div><div class="tile"><span>最近模擬考平均</span><b>'+(mavg==null?"—":mavg+'<small> 分</small>')+'</b></div></div>';
+  // class weak units
+  var cu=UNITS.map(function(u){var r=0,t=0,n=0;all.forEach(function(o){var x=o.s[u.id];if(x){r+=x[0];t+=x[1];n++}});return {u:u,p:t?r/t:null,n:n}}).filter(function(x){return x.p!=null&&x.n>0}).sort(function(a,b){return a.p-b.p});
+  h+='<div class="sheet"><h2>全班最弱的單元</h2>'+(cu.length?'<ol class="weak">'+cu.slice(0,5).map(function(x){return '<li><a href="#'+x.u.id+'">'+x.u.g+'・'+x.u.t+'</a><span class="num">答對率 '+Math.round(x.p*100)+'%（'+x.n+' 人作答）</span></li>'}).join("")+'</ol>':'<p class="muted">學生還沒有作答紀錄。</p>')+'</div>';
+  h+='<div class="sheet"><h2>學生列表</h2><p class="muted" style="margin:4px 0 10px">點姓名看各單元答對率。紅色表示答對率低於 60%。</p><div class="tbl"><table class="ttbl"><thead><tr><th>姓名</th><th>答對率</th><th>作答</th><th>模擬考</th><th>錯題</th><th>最弱單元</th><th>更新</th></tr></thead><tbody>'+
+    names.map(function(n){var o=cls[n],a=sAcc(o),m=o.m.length?o.m[o.m.length-1]:null;return '<tr'+(tSel===n?' class="sel"':'')+'><td><button class="lnk" data-n="'+escA(n)+'">'+escH(n)+'</button></td><td class="num'+(a.p!=null&&a.p<.6?' bad':'')+'">'+(a.p==null?"—":Math.round(a.p*100)+"%")+'</td><td class="num">'+a.t+'</td><td class="num">'+(m==null?"—":m+(o.m.length>1?'<small class="muted">（'+o.m.length+' 回）</small>':''))+'</td><td class="num">'+o.w+'</td><td>'+(sWeak(o).map(function(k){return byId[k].t}).join("、")||'<span class="muted">—</span>')+'</td><td class="num">'+o.d.slice(5).replace("-","/")+'</td></tr>'}).join("")+'</tbody></table></div></div>';
+  if(tSel&&cls[tSel]){
+    var o=cls[tSel];
+    h+='<div class="sheet" id="tdet"><h2>'+escH(tSel)+' 的各單元答對率</h2><p class="muted" style="margin:4px 0 10px">成績碼日期 '+o.d+(o.e?'・會考日期 '+o.e:'')+(o.m.length?'・模擬考分數：'+o.m.join("、"):'')+'</p><div class="tbl"><table class="ptbl"><thead><tr><th>單元</th><th>答對率</th><th style="width:34%"></th><th>練習最佳</th></tr></thead><tbody>';
+    GR.forEach(function(g){h+='<tr class="grow"><td colspan="4">'+g+'</td></tr>';UNITS.filter(function(u){return u.g===g}).forEach(function(u){var x=o.s[u.id],p=x&&x[1]?x[0]/x[1]:null,b=o.b[u.id];h+='<tr><td>'+u.t+'</td><td class="num">'+(p==null?"—":Math.round(p*100)+"%")+'</td><td><div class="bar'+(p!=null&&p<.6?" low":"")+'"><i style="width:'+(p==null?0:Math.round(p*100))+'%"></i></div></td><td class="num">'+(b==null?"—":b+" / 10")+'</td></tr>'})});
+    h+='</tbody></table></div><div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn ghost" id="tdel">刪除這位學生</button></div></div>';
+  }
+  h+='<div><button class="btn ghost" id="tclr">清除全部學生資料</button><span class="muted" id="tclrn" style="margin-left:8px;font-size:14px"></span></div></section>';
+  app.innerHTML=h;bindT();
+  app.querySelectorAll("button.lnk").forEach(function(b){b.onclick=function(){tSel=tSel===b.dataset.n?null:b.dataset.n;teacher();var d=document.getElementById("tdet");if(d)d.scrollIntoView({block:"start"})}});
+  var del=document.getElementById("tdel");if(del)del.onclick=function(){var c=LS.get("class",{});delete c[tSel];LS.set("class",c);tSel=null;teacher()};
+  var clr=document.getElementById("tclr"),armed=false;clr.onclick=function(){if(!armed){armed=true;clr.textContent="確定清除";document.getElementById("tclrn").textContent="再按一次會刪除全部學生資料。";return}LS.set("class",{});tSel=null;teacher()};
+}
+function bindT(){
+  document.getElementById("tadd").onclick=function(){
+    var r=parseCodes(document.getElementById("tin").value),c=LS.get("class",{}),add=0,upd=0,old=0;
+    r.list.forEach(function(o){var p=c[o.n];if(!p){c[o.n]=o;add++}else if(o.d>=p.d){c[o.n]=o;upd++}else old++});
+    LS.set("class",c);var msg=(add?"新增 "+add+" 位":"")+(upd?(add?"、":"")+"更新 "+upd+" 位":"")+(old?"，"+old+" 個比現有資料舊，略過":"")+(r.bad?"，"+r.bad+" 個成績碼讀不出來":"");
+    teacher();document.getElementById("tmsg").textContent=r.list.length||r.bad?msg.replace(/^，/,""):"沒有找到成績碼，請確認有貼到 HKM1. 開頭的文字。";
+  };
 }
 function lineChart(hist){
   var W=480,H=220,pl=36,pr=16,pt=16,pb=30,n=hist.length;
@@ -2659,13 +2727,14 @@ function bindEx(){
 }
 function route(){
   var hsh=(location.hash||"#home").slice(1);
-  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":hsh==="formulas"?"formulas":hsh==="wrongbook"?"wrongbook":hsh==="progress"?"progress":hsh==="sprint"?"sprint":"home"))});
+  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":hsh==="formulas"?"formulas":hsh==="wrongbook"?"wrongbook":hsh==="progress"?"progress":hsh==="sprint"?"sprint":hsh==="teacher"?"progress":"home"))});
   if(hsh==="mock"){if(mock&&!mock.done&&document.getElementById("smap"))return;if(mock&&!mock.done){renderMock();return}mockSetup()}
   else if(hsh==="order")order();
   else if(hsh==="formulas")formulas();
   else if(hsh==="wrongbook")wrongbook();
   else if(hsh==="progress")progress();
   else if(hsh==="sprint")sprint();
+  else if(hsh==="teacher")teacher();
   else if(byId[hsh])unit(byId[hsh]);
   else home();
   if(hsh!=="mock")window.scrollTo(0,0);
