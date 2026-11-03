@@ -258,6 +258,8 @@ var UNITS=[];function U(o){UNITS.push(o)}
 </script>
 <script>
 (function(){
+var TM=typeof APP_MODE!=="undefined"&&APP_MODE==="teacher";
+function curRoute(){var h=(location.hash||"").slice(1);if(!h||h==="home")return TM?"teacher":"home";return h}
 var GR=["七上","七下","八上","八下","九上","九下"];
 var GRN={"七上":"七年級上學期","七下":"七年級下學期","八上":"八年級上學期","八下":"八年級下學期","九上":"九年級上學期","九下":"九年級下學期"};
 var byId={};UNITS.forEach(function(u,i){u.n=i+1;byId[u.id]=u});
@@ -607,7 +609,7 @@ function progress(){
   });
   h+='</tbody></table></div></div>';
   h+='<div class="sheet" id="share"><h2>傳給老師</h2><p class="muted" style="margin:4px 0 10px">輸入姓名後產生「成績碼」，複製傳給老師（LINE、訊息都可以）。成績碼只包含姓名、各單元答對率、模擬考分數和錯題數，不會自動上傳到任何地方。</p><div class="sprint-in"><input id="stn" placeholder="姓名或座號" maxlength="20" value="'+escA(LS.get("name",""))+'" aria-label="姓名"><button class="btn" id="mkc">產生成績碼</button></div><div id="codebox"></div></div>';
-  h+='<p class="muted" style="font-size:14px">'+(FB.on?'想讓老師自動看到紀錄？到<a href="#account">帳號頁</a>登入並加入班級。':'')+'我是老師：<a href="#teacher">打開教師頁</a>。</p></section>';
+  h+='<p class="muted" style="font-size:14px">'+(FB.on?'想讓老師自動看到紀錄？到<a href="#account">帳號頁</a>登入並加入班級。':'')+'</p></section>';
   app.innerHTML=h;
   document.getElementById("mkc").onclick=function(){
     var n=document.getElementById("stn").value.trim(),box=document.getElementById("codebox");
@@ -666,7 +668,7 @@ function teacher(){
 function teacherCloud(h){
   h+='<p class="muted">學生登入後輸入班級代碼加入，作答紀錄就會自動出現在這裡。</p>';
   if(!FB.on){app.innerHTML=h+'<div class="sheet"><p>雲端登入還沒啟用。網站管理者完成 Firebase 設定後就能使用；在那之前可以先用「成績碼」。</p></div></section>';return}
-  if(!FB.ready){app.innerHTML=h+'<div class="sheet"><p class="muted">'+(FB.err||"載入中…")+'</p></div></section>';fbLoad(function(){if(location.hash==="#teacher")teacher()});return}
+  if(!FB.ready){app.innerHTML=h+'<div class="sheet"><p class="muted">'+(FB.err||"載入中…")+'</p></div></section>';fbLoad(function(){if(curRoute()==="teacher")teacher()});return}
   if(!FB.user){app.innerHTML=h+'<div class="sheet"><p>老師也用 Google 帳號登入，就能建立班級。</p><button class="btn" id="gin" style="margin-top:10px">用 Google 帳號登入</button>'+(FB.err?'<p class="muted" style="margin-top:8px">'+escH(FB.err)+'</p>':'')+'</div></section>';document.getElementById("gin").onclick=signIn;return}
   if(TC.classes==null){app.innerHTML=h+'<div class="sheet"><p class="muted">讀取班級中…</p></div></section>';
     db().collection("classes").where("teacher","==",FB.user.uid).get().then(function(q){TC.classes=q.docs.map(function(d){return {code:d.id,name:d.data().name,kicked:d.data().kicked||{}}}).sort(function(a,b){return a.name.localeCompare(b.name,"zh-Hant",{numeric:true})});if(!TC.sel&&TC.classes.length)TC.sel=TC.classes[0].code;TC.list=null;tRe()}).catch(function(e){TC.classes=[];TC.msg="讀取班級失敗："+e.message;tRe()});return}
@@ -706,7 +708,7 @@ function teacherCloud(h){
   }});
   var rf=document.getElementById("crf");if(rf)rf.onclick=function(){TC.list=null;teacher()};
 }
-function tRe(){if(location.hash==="#teacher")teacher()}
+function tRe(){if(curRoute()==="teacher")teacher()}
 function curClass(){var r=null;(TC.classes||[]).forEach(function(c){if(c.code===TC.sel)r=c});return r}
 function bindTC(){
   app.querySelectorAll(".chip[data-cc]").forEach(function(c){c.onclick=function(){TC.sel=c.dataset.cc;TC.list=null;tSel=null;teacher()}});
@@ -755,7 +757,7 @@ function fbLoad(cb){
   })();
 }
 function db(){return firebase.firestore()}
-function rerender(){var h=(location.hash||"#home").slice(1);if(h==="account"||h==="teacher"||h==="progress"||h==="class")route();else if(h==="home"&&FB.prof)loadAnnc()}
+function rerender(){var h=curRoute();if(h==="account"||h==="teacher"||h==="progress"||h==="class")route();else if(h==="home"&&FB.prof)loadAnnc()}
 function snapshot(){
   var b={};UNITS.forEach(function(u){var x=best(u.id);if(x!=null)b[u.id]=x});
   return {stat:LS.get("stat",{}),best:b,mockhist:LS.get("mockhist",[]).slice(-30),wb:LS.get("wb",{}),exam:LS.get("exam","")||""};
@@ -807,8 +809,9 @@ function account(){
   if(!FB.prof){app.innerHTML=h+'<div class="sheet"><p class="muted">讀取帳號資料中…</p></div></section>';return}
   var p=FB.prof;
   h+='<div class="sheet"><p>已登入：<b>'+escH(FB.user.email||FB.user.displayName||"")+'</b></p><p class="muted" id="syncst" style="font-size:14px;margin-top:4px">'+syncText()+'</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn ghost" id="snow">立即同步</button><button class="btn ghost" id="gout">登出</button></div></div>';
+  if(TM){app.innerHTML=h+'<p><a class="btn" href="#teacher">回到班級管理</a></p></section>';document.getElementById("gout").onclick=signOut;document.getElementById("snow").onclick=function(){document.getElementById("syncst").textContent="同步中…";pushNow()};return}
   h+='<div class="sheet"><h2>我的班級</h2><p class="muted" style="margin:4px 0 10px">輸入老師給你的 6 碼班級代碼。加入後，老師就能看到你的作答狀況。</p><div class="acf"><label>姓名<input id="an" maxlength="20" value="'+escA(p.name)+'"></label><label>座號<input id="as" maxlength="6" inputmode="numeric" value="'+escA(p.seat)+'"></label><label>班級代碼<input id="ac" maxlength="6" style="text-transform:uppercase" value="'+escA(p.cls)+'"></label></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center"><button class="btn" id="asv">儲存</button><span class="muted" id="amsg" style="font-size:14px">'+(p.cls?'目前班級：'+escH(p.cls):'還沒加入班級')+'</span></div></div>';
-  h+='<p class="muted" style="font-size:14px">'+(p.cls?'<a href="#class">看班級公告和排行榜</a>・':'')+'我是老師：<a href="#teacher">打開教師頁</a>建立班級。</p></section>';
+  h+='<p class="muted" style="font-size:14px">'+(p.cls?'<a href="#class">看班級公告和排行榜</a>・':'')+'老師請到 <a href="teacher.html">教師後台</a>。</p></section>';
   app.innerHTML=h;
   document.getElementById("gout").onclick=signOut;
   document.getElementById("snow").onclick=function(){document.getElementById("syncst").textContent="同步中…";pushNow()};
@@ -967,8 +970,10 @@ function bindEx(){
   var c=document.getElementById("exc");if(c)c.onclick=function(){LS.set("exam",null);LS.set("sprintDay",null);sprint()};
 }
 function route(){
-  var hsh=(location.hash||"#home").slice(1);
-  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":hsh==="formulas"?"formulas":hsh==="wrongbook"?"wrongbook":hsh==="progress"?"progress":hsh==="sprint"?"sprint":hsh==="teacher"?"progress":hsh==="account"?"account":"home"))});
+  var hsh=(location.hash||(TM?"#teacher":"#home")).slice(1);
+  if(TM&&(hsh==="home"||hsh===""))hsh="teacher";
+  if(!TM&&hsh==="teacher"){location.replace("teacher.html");return}
+  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":hsh==="formulas"?"formulas":hsh==="wrongbook"?"wrongbook":hsh==="progress"?"progress":hsh==="sprint"?"sprint":hsh==="teacher"?"teacher":hsh==="account"?"account":"home"))});
   if(hsh==="mock"){if(mock&&!mock.done&&document.getElementById("smap"))return;if(mock&&!mock.done){renderMock();return}mockSetup()}
   else if(hsh==="order")order();
   else if(hsh==="formulas")formulas();
@@ -985,6 +990,7 @@ function route(){
 }
 function hh(){var t=document.querySelector("header.top");if(t)document.documentElement.style.setProperty("--hh",t.offsetHeight+"px")}
 window.addEventListener("resize",hh);hh();
+if(TM){document.title="會考數學・教師後台";var br=document.querySelector(".brand");br.href="#teacher";br.innerHTML='會考數學<span>教師後台</span>';document.querySelector("nav.main").innerHTML='<a href="#teacher" data-nav="teacher">班級管理</a><a href="./">學生網站 ↗</a>'}
 window.addEventListener("hashchange",route);updBadge();route();
 if(FB.on)setTimeout(function(){fbLoad()},300);else{var na0=document.getElementById("navacc");if(na0)na0.hidden=true}
 })();

@@ -13,3 +13,9 @@ page = ('<!doctype html>\n<html lang="zh-Hant">\n<head>\n<meta charset="utf-8">\
         '</head>\n<body>\n' + body + '\n</body>\n</html>\n')
 (root / "index.html").write_text(page, encoding="utf-8")
 print("index.html", len(page))
+# 教師後台：同一份程式，以教師模式啟動
+tpage = page.replace("<title>會考數學總複習</title>", "<title>會考數學・教師後台</title>", 1).replace(
+    "<body>\n", '<body>\n<script>var APP_MODE="teacher";</script>\n', 1)
+assert 'APP_MODE="teacher"' in tpage
+(root / "teacher.html").write_text(tpage, encoding="utf-8")
+print("teacher.html", len(tpage))
