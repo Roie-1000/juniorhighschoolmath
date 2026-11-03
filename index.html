@@ -126,6 +126,13 @@ button.lnk{background:none;border:0;padding:0;font:inherit;color:var(--teal);tex
 .ttbl td.bad{color:var(--red);font-weight:700}
 .ttbl tr.sel td{background:var(--teal-soft)}
 .ttbl{min-width:620px}
+.acf{display:grid;grid-template-columns:2fr 1fr 1.5fr;gap:8px}
+.acf label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted)}
+.acf input{width:100%;box-sizing:border-box;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);color:var(--ink);min-width:0}
+.acc{padding:4px 12px;border:1px solid var(--line);border-radius:16px;font-size:14px;text-decoration:none;color:var(--ink);white-space:nowrap}
+.acc.on{background:var(--teal-soft);color:var(--teal);border-color:transparent}
+.ccode{font-family:var(--f-mono);font-size:20px;letter-spacing:2px;color:var(--teal)}
+@media (max-width:520px){.acf{grid-template-columns:1fr 1fr}.acf label:first-child{grid-column:1/-1}}
 details.wk summary{cursor:pointer;font-weight:700;padding:8px 0}
 .sprint-in{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .sprint-in input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);color:var(--ink)}
@@ -222,6 +229,8 @@ tr.grow td{font-family:var(--f-display);font-weight:700;padding-top:14px;color:v
   .top .wrap{gap:8px}
   .brand{font-size:17px}
   nav.main a{padding:5px 8px;font-size:14px}
+  .acc{order:1;margin-left:auto}
+  nav.main{order:2;margin-left:0}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
@@ -236,6 +245,7 @@ tr.grow td{font-family:var(--f-display);font-weight:700;padding-top:14px;color:v
     <a href="#mock" data-nav="mock">模擬考</a>
     <a href="#sprint" data-nav="sprint">衝刺</a>
   </nav>
+  <a class="acc" href="#account" id="navacc">登入</a>
 </div></header>
 <main class="wrap" id="app"></main>
 
@@ -2223,6 +2233,8 @@ FIG(["P 在線段 AB 的中垂線上"],{"P":{"A":[30,160],"B":[190,160],"M":[110
 FIG(["直角三角形兩股 5、12，內切圓", "直角三角形兩股 6、8，內切圓"],{"P":{"C":[30,160],"A":[30,40],"B":[190,160],"I":[70,120]},"C":[["I",40]],"L":["AC","CB","AB"],"R":[["C","A","B"]],"o":{"I":[10,-8]}});
 FIG(["△ABC 的外角 ∠ACD"],{"P":{"A":[80,30],"B":[20,160],"C":[150,160],"D":[220,160]},"L":["AB","AC","BD"]});
 
+var FB_CONFIG=null;
+
 </script>
 <script>
 (function(){
@@ -2234,7 +2246,7 @@ function fmt(s){return String(s).replace(/\^\(([^)]+)\)/g,"<sup>$1</sup>").repla
 function fmHTML(list){return '<div class="fm">'+list.map(function(f){return '<div class="fm-row"><div class="nm">'+fmt(f[0])+'</div><div class="eq">'+fmt(f[1])+'</div>'+(f[2]?'<div class="nt">'+fmt(f[2])+'</div>':"")+'</div>'}).join("")+'</div>'}
 function esc(s){return String(s)}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
-var LS={get:function(k,d){try{var v=localStorage.getItem("hk-math:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set:function(k,v){try{localStorage.setItem("hk-math:"+k,JSON.stringify(v))}catch(e){}}};
+var LS={get:function(k,d){try{var v=localStorage.getItem("hk-math:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set:function(k,v){LS.raw(k,v);if(/^(stat|wb|mockhist|exam|best:)/.test(k)&&typeof schedulePush==="function")schedulePush()},raw:function(k,v){try{localStorage.setItem("hk-math:"+k,JSON.stringify(v))}catch(e){}}};
 function best(id){return LS.get("best:"+id,null)}
 var L="ABCD";
 
@@ -2575,7 +2587,7 @@ function progress(){
   });
   h+='</tbody></table></div></div>';
   h+='<div class="sheet" id="share"><h2>傳給老師</h2><p class="muted" style="margin:4px 0 10px">輸入姓名後產生「成績碼」，複製傳給老師（LINE、訊息都可以）。成績碼只包含姓名、各單元答對率、模擬考分數和錯題數，不會自動上傳到任何地方。</p><div class="sprint-in"><input id="stn" placeholder="姓名或座號" maxlength="20" value="'+escA(LS.get("name",""))+'" aria-label="姓名"><button class="btn" id="mkc">產生成績碼</button></div><div id="codebox"></div></div>';
-  h+='<p class="muted" style="font-size:14px">我是老師：<a href="#teacher">打開教師頁</a>，貼上學生傳來的成績碼查看全班狀況。</p></section>';
+  h+='<p class="muted" style="font-size:14px">'+(FB.on?'想讓老師自動看到紀錄？到<a href="#account">帳號頁</a>登入並加入班級。':'')+'我是老師：<a href="#teacher">打開教師頁</a>。</p></section>';
   app.innerHTML=h;
   document.getElementById("mkc").onclick=function(){
     var n=document.getElementById("stn").value.trim(),box=document.getElementById("codebox");
@@ -2604,30 +2616,67 @@ function parseCodes(txt){
 }
 function sAcc(o){var r=0,t=0;Object.keys(o.s).forEach(function(k){r+=o.s[k][0];t+=o.s[k][1]});return {r:r,t:t,p:t?r/t:null}}
 function sWeak(o){return Object.keys(o.s).filter(function(k){return byId[k]&&o.s[k][1]>=3}).sort(function(a,b){return o.s[a][0]/o.s[a][1]-o.s[b][0]/o.s[b][1]}).slice(0,3)}
-var tSel=null;
-function teacher(){
-  var cls=LS.get("class",{}),names=Object.keys(cls).sort(function(a,b){return a.localeCompare(b,"zh-Hant",{numeric:true})});
-  var h='<section class="stack"><div><p class="eyebrow">教師頁</p><h1>全班學習狀況</h1><p class="muted" style="margin-top:8px">請學生到「進度」頁最下面產生成績碼傳給你，把收到的訊息整段貼在下面（一次貼很多個也可以）。同一位學生再傳一次，會更新成最新的成績。資料只存在你這台裝置。</p></div>';
-  h+='<div class="sheet"><textarea class="code" id="tin" rows="4" placeholder="貼上成績碼（HKM1. 開頭）" aria-label="貼上成績碼"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center"><button class="btn" id="tadd">加入</button><span class="muted" id="tmsg" style="font-size:14px"></span></div></div>';
-  if(!names.length){app.innerHTML=h+'<p class="muted">還沒有學生資料。</p></section>';bindT();return}
-  var all=names.map(function(n){return cls[n]});
+var tSel=null,tMode=LS.get("tmode","cloud"),TC={classes:null,sel:null,list:null,msg:""};
+function classHTML(all){
+  var names=all.map(function(o){return o.n});
   var accs=all.map(sAcc).filter(function(a){return a.p!=null}),avg=accs.length?Math.round(accs.reduce(function(x,a){return x+a.p},0)/accs.length*100):null;
   var lastM=all.map(function(o){return o.m.length?o.m[o.m.length-1]:null}).filter(function(x){return x!=null}),mavg=lastM.length?Math.round(lastM.reduce(function(a,b){return a+b},0)/lastM.length):null;
-  h+='<div class="tiles"><div class="tile"><span>學生人數</span><b>'+names.length+'</b></div><div class="tile"><span>全班平均答對率</span><b>'+(avg==null?"—":avg+'<small>%</small>')+'</b></div><div class="tile"><span>最近模擬考平均</span><b>'+(mavg==null?"—":mavg+'<small> 分</small>')+'</b></div></div>';
-  // class weak units
+  var h='<div class="tiles"><div class="tile"><span>學生人數</span><b>'+all.length+'</b></div><div class="tile"><span>全班平均答對率</span><b>'+(avg==null?"—":avg+'<small>%</small>')+'</b></div><div class="tile"><span>最近模擬考平均</span><b>'+(mavg==null?"—":mavg+'<small> 分</small>')+'</b></div></div>';
   var cu=UNITS.map(function(u){var r=0,t=0,n=0;all.forEach(function(o){var x=o.s[u.id];if(x){r+=x[0];t+=x[1];n++}});return {u:u,p:t?r/t:null,n:n}}).filter(function(x){return x.p!=null&&x.n>0}).sort(function(a,b){return a.p-b.p});
   h+='<div class="sheet"><h2>全班最弱的單元</h2>'+(cu.length?'<ol class="weak">'+cu.slice(0,5).map(function(x){return '<li><a href="#'+x.u.id+'">'+x.u.g+'・'+x.u.t+'</a><span class="num">答對率 '+Math.round(x.p*100)+'%（'+x.n+' 人作答）</span></li>'}).join("")+'</ol>':'<p class="muted">學生還沒有作答紀錄。</p>')+'</div>';
   h+='<div class="sheet"><h2>學生列表</h2><p class="muted" style="margin:4px 0 10px">點姓名看各單元答對率。紅色表示答對率低於 60%。</p><div class="tbl"><table class="ttbl"><thead><tr><th>姓名</th><th>答對率</th><th>作答</th><th>模擬考</th><th>錯題</th><th>最弱單元</th><th>更新</th></tr></thead><tbody>'+
-    names.map(function(n){var o=cls[n],a=sAcc(o),m=o.m.length?o.m[o.m.length-1]:null;return '<tr'+(tSel===n?' class="sel"':'')+'><td><button class="lnk" data-n="'+escA(n)+'">'+escH(n)+'</button></td><td class="num'+(a.p!=null&&a.p<.6?' bad':'')+'">'+(a.p==null?"—":Math.round(a.p*100)+"%")+'</td><td class="num">'+a.t+'</td><td class="num">'+(m==null?"—":m+(o.m.length>1?'<small class="muted">（'+o.m.length+' 回）</small>':''))+'</td><td class="num">'+o.w+'</td><td>'+(sWeak(o).map(function(k){return byId[k].t}).join("、")||'<span class="muted">—</span>')+'</td><td class="num">'+o.d.slice(5).replace("-","/")+'</td></tr>'}).join("")+'</tbody></table></div></div>';
-  if(tSel&&cls[tSel]){
-    var o=cls[tSel];
-    h+='<div class="sheet" id="tdet"><h2>'+escH(tSel)+' 的各單元答對率</h2><p class="muted" style="margin:4px 0 10px">成績碼日期 '+o.d+(o.e?'・會考日期 '+o.e:'')+(o.m.length?'・模擬考分數：'+o.m.join("、"):'')+'</p><div class="tbl"><table class="ptbl"><thead><tr><th>單元</th><th>答對率</th><th style="width:34%"></th><th>練習最佳</th></tr></thead><tbody>';
+    all.map(function(o){var n=o.n,a=sAcc(o),m=o.m.length?o.m[o.m.length-1]:null;return '<tr'+(tSel===n?' class="sel"':'')+'><td><button class="lnk" data-n="'+escA(n)+'">'+escH(n)+'</button></td><td class="num'+(a.p!=null&&a.p<.6?' bad':'')+'">'+(a.p==null?"—":Math.round(a.p*100)+"%")+'</td><td class="num">'+a.t+'</td><td class="num">'+(m==null?"—":m+(o.m.length>1?'<small class="muted">（'+o.m.length+' 回）</small>':''))+'</td><td class="num">'+o.w+'</td><td>'+(sWeak(o).map(function(k){return byId[k].t}).join("、")||'<span class="muted">—</span>')+'</td><td class="num">'+(o.d?o.d.slice(5).replace("-","/"):"—")+'</td></tr>'}).join("")+'</tbody></table></div></div>';
+  var o=null;all.forEach(function(x){if(x.n===tSel)o=x});
+  if(o){
+    h+='<div class="sheet" id="tdet"><h2>'+escH(o.n)+' 的各單元答對率</h2><p class="muted" style="margin:4px 0 10px">更新日期 '+(o.d||"—")+(o.e?'・會考日期 '+o.e:'')+(o.m.length?'・模擬考分數：'+o.m.join("、"):'')+'</p><div class="tbl"><table class="ptbl"><thead><tr><th>單元</th><th>答對率</th><th style="width:34%"></th><th>練習最佳</th></tr></thead><tbody>';
     GR.forEach(function(g){h+='<tr class="grow"><td colspan="4">'+g+'</td></tr>';UNITS.filter(function(u){return u.g===g}).forEach(function(u){var x=o.s[u.id],p=x&&x[1]?x[0]/x[1]:null,b=o.b[u.id];h+='<tr><td>'+u.t+'</td><td class="num">'+(p==null?"—":Math.round(p*100)+"%")+'</td><td><div class="bar'+(p!=null&&p<.6?" low":"")+'"><i style="width:'+(p==null?0:Math.round(p*100))+'%"></i></div></td><td class="num">'+(b==null?"—":b+" / 10")+'</td></tr>'})});
-    h+='</tbody></table></div><div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn ghost" id="tdel">刪除這位學生</button></div></div>';
+    h+='</tbody></table></div>'+(tMode==="code"?'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn ghost" id="tdel">刪除這位學生</button></div>':'')+'</div>';
   }
-  h+='<div><button class="btn ghost" id="tclr">清除全部學生資料</button><span class="muted" id="tclrn" style="margin-left:8px;font-size:14px"></span></div></section>';
-  app.innerHTML=h;bindT();
+  return h;
+}
+function bindClass(){
   app.querySelectorAll("button.lnk").forEach(function(b){b.onclick=function(){tSel=tSel===b.dataset.n?null:b.dataset.n;teacher();var d=document.getElementById("tdet");if(d)d.scrollIntoView({block:"start"})}});
+}
+function teacher(){
+  if(!FB.on)tMode="code";
+  var h='<section class="stack"><div><p class="eyebrow">教師頁</p><h1>全班學習狀況</h1></div>'+(FB.on?'<div class="ranges" style="display:flex;gap:8px;flex-wrap:wrap">'+[["cloud","線上班級"],["code","成績碼"]].map(function(m){return '<button class="chip'+(tMode===m[0]?" on":"")+'" data-tm="'+m[0]+'" aria-pressed="'+(tMode===m[0])+'">'+m[1]+'</button>'}).join("")+'</div>':'');
+  if(tMode==="cloud")teacherCloud(h);else teacherCode(h);
+  app.querySelectorAll(".chip[data-tm]").forEach(function(c){c.onclick=function(){tMode=c.dataset.tm;LS.set("tmode",tMode);tSel=null;teacher()}});
+}
+function teacherCloud(h){
+  h+='<p class="muted">學生登入後輸入班級代碼加入，作答紀錄就會自動出現在這裡。</p>';
+  if(!FB.on){app.innerHTML=h+'<div class="sheet"><p>雲端登入還沒啟用。網站管理者完成 Firebase 設定後就能使用；在那之前可以先用「成績碼」。</p></div></section>';return}
+  if(!FB.ready){app.innerHTML=h+'<div class="sheet"><p class="muted">'+(FB.err||"載入中…")+'</p></div></section>';fbLoad(function(){if(location.hash==="#teacher")teacher()});return}
+  if(!FB.user){app.innerHTML=h+'<div class="sheet"><p>老師也用 Google 帳號登入，就能建立班級。</p><button class="btn" id="gin" style="margin-top:10px">用 Google 帳號登入</button></div></section>';document.getElementById("gin").onclick=signIn;return}
+  if(TC.classes==null){app.innerHTML=h+'<div class="sheet"><p class="muted">讀取班級中…</p></div></section>';
+    db().collection("classes").where("teacher","==",FB.user.uid).get().then(function(q){TC.classes=q.docs.map(function(d){return {code:d.id,name:d.data().name}}).sort(function(a,b){return a.name.localeCompare(b.name,"zh-Hant",{numeric:true})});if(!TC.sel&&TC.classes.length)TC.sel=TC.classes[0].code;TC.list=null;tRe()}).catch(function(e){TC.classes=[];TC.msg="讀取班級失敗："+e.message;tRe()});return}
+  h+='<div class="sheet"><h2>我的班級</h2>'+(TC.classes.length?'<div class="ranges" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'+TC.classes.map(function(c){return '<button class="chip'+(TC.sel===c.code?" on":"")+'" data-cc="'+c.code+'">'+escH(c.name)+'</button>'}).join("")+'</div>':'<p class="muted" style="margin-top:6px">還沒有班級，先建立一個。</p>')+
+    (TC.sel?'<p style="margin-top:10px">班級代碼：<b class="ccode">'+TC.sel+'</b> <span class="muted" style="font-size:14px">把這 6 碼給學生，學生到「帳號」頁輸入就能加入。</span></p>':'')+
+    '<div class="sprint-in" style="margin-top:12px"><input id="cn" placeholder="新班級名稱，例如 九年三班" maxlength="20" aria-label="班級名稱"><button class="btn ghost" id="cadd">建立班級</button></div><p class="muted" id="cmsg" style="font-size:14px;margin-top:6px">'+escH(TC.msg)+'</p><p class="muted" style="font-size:14px">登入帳號：'+escH(FB.user.email||"")+'・<a href="#account">帳號頁</a></p></div>';
+  if(TC.sel&&TC.list==null){app.innerHTML=h+'<p class="muted">讀取學生資料中…</p></section>';bindTC();
+    db().collection("users").where("cls","==",TC.sel).where("tch","==",FB.user.uid).get().then(function(q){TC.list=q.docs.map(cloudToO).sort(function(a,b){return a.n.localeCompare(b.n,"zh-Hant",{numeric:true})});tRe()}).catch(function(e){TC.list=[];TC.msg="讀取學生失敗："+e.message;tRe()});return}
+  if(TC.sel)h+=(TC.list.length?classHTML(TC.list):'<div class="sheet"><p>這個班級還沒有學生加入。</p></div>')+'<div><button class="btn ghost" id="crf">重新整理</button></div>';
+  app.innerHTML=h+'</section>';bindTC();bindClass();
+  var rf=document.getElementById("crf");if(rf)rf.onclick=function(){TC.list=null;teacher()};
+}
+function tRe(){if(location.hash==="#teacher")teacher()}
+function bindTC(){
+  app.querySelectorAll(".chip[data-cc]").forEach(function(c){c.onclick=function(){TC.sel=c.dataset.cc;TC.list=null;tSel=null;teacher()}});
+  var ad=document.getElementById("cadd");if(ad)ad.onclick=function(){
+    var n=document.getElementById("cn").value.trim();if(!n){document.getElementById("cmsg").textContent="請輸入班級名稱。";return}
+    var code=newCode(),ref=db().collection("classes").doc(code);
+    ref.get().then(function(d){if(d.exists)throw new Error("代碼重複，請再按一次");return ref.set({name:n,teacher:FB.user.uid,created:firebase.firestore.FieldValue.serverTimestamp()})})
+      .then(function(){TC.msg="已建立「"+n+"」，代碼 "+code+"。";TC.classes=null;TC.sel=code;tRe()}).catch(function(e){document.getElementById("cmsg").textContent="建立失敗："+e.message});
+  };
+}
+function teacherCode(h){
+  var cls=LS.get("class",{}),names=Object.keys(cls).sort(function(a,b){return a.localeCompare(b,"zh-Hant",{numeric:true})});
+  h+='<p class="muted">請學生到「進度」頁最下面產生成績碼傳給你，把收到的訊息整段貼在下面（一次貼很多個也可以）。同一位學生再傳一次，會更新成最新的成績。資料只存在你這台裝置。</p>';
+  h+='<div class="sheet"><textarea class="code" id="tin" rows="4" placeholder="貼上成績碼（HKM1. 開頭）" aria-label="貼上成績碼"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center"><button class="btn" id="tadd">加入</button><span class="muted" id="tmsg" style="font-size:14px"></span></div></div>';
+  if(!names.length){app.innerHTML=h+'<p class="muted">還沒有學生資料。</p></section>';bindT();return}
+  h+=classHTML(names.map(function(n){return cls[n]}));
+  h+='<div><button class="btn ghost" id="tclr">清除全部學生資料</button><span class="muted" id="tclrn" style="margin-left:8px;font-size:14px"></span></div></section>';
+  app.innerHTML=h;bindT();bindClass();
   var del=document.getElementById("tdel");if(del)del.onclick=function(){var c=LS.get("class",{});delete c[tSel];LS.set("class",c);tSel=null;teacher()};
   var clr=document.getElementById("tclr"),armed=false;clr.onclick=function(){if(!armed){armed=true;clr.textContent="確定清除";document.getElementById("tclrn").textContent="再按一次會刪除全部學生資料。";return}LS.set("class",{});tSel=null;teacher()};
 }
@@ -2638,6 +2687,90 @@ function bindT(){
     LS.set("class",c);var msg=(add?"新增 "+add+" 位":"")+(upd?(add?"、":"")+"更新 "+upd+" 位":"")+(old?"，"+old+" 個比現有資料舊，略過":"")+(r.bad?"，"+r.bad+" 個成績碼讀不出來":"");
     teacher();document.getElementById("tmsg").textContent=r.list.length||r.bad?msg.replace(/^，/,""):"沒有找到成績碼，請確認有貼到 HKM1. 開頭的文字。";
   };
+}
+/* ---------- cloud (Firebase) ---------- */
+var FB={on:!!(typeof FB_CONFIG!=="undefined"&&FB_CONFIG&&FB_CONFIG.apiKey),ready:false,loading:false,user:null,prof:null,syncAt:null,err:"",wait:[]};
+var FBV="10.12.2";
+function fbLoad(cb){
+  if(!FB.on){cb&&cb(false);return}
+  if(FB.ready){cb&&cb(true);return}
+  if(cb)FB.wait.push(cb);if(FB.loading)return;FB.loading=true;
+  var libs=["app","auth","firestore"],i=0;
+  (function next(){
+    if(i===libs.length){
+      try{firebase.initializeApp(FB_CONFIG);FB.ready=true;firebase.auth().onAuthStateChanged(onAuth)}catch(e){FB.err="雲端功能載入失敗："+e.message}
+      var w=FB.wait;FB.wait=[];w.forEach(function(f){f(FB.ready)});return;
+    }
+    var s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/firebase@"+FBV+"/firebase-"+libs[i++]+"-compat.js";
+    s.onload=next;s.onerror=function(){FB.loading=false;FB.err="連不上雲端服務，請檢查網路後重新整理。";var w=FB.wait;FB.wait=[];w.forEach(function(f){f(false)});rerender()};
+    document.head.appendChild(s);
+  })();
+}
+function db(){return firebase.firestore()}
+function rerender(){var h=(location.hash||"#home").slice(1);if(h==="account"||h==="teacher"||h==="progress")route()}
+function snapshot(){
+  var b={};UNITS.forEach(function(u){var x=best(u.id);if(x!=null)b[u.id]=x});
+  return {stat:LS.get("stat",{}),best:b,mockhist:LS.get("mockhist",[]).slice(-30),wb:LS.get("wb",{}),exam:LS.get("exam","")||""};
+}
+function mergeIn(d){
+  if(!d)return;
+  var st=LS.get("stat",{});Object.keys(d.stat||{}).forEach(function(k){if(!st[k]||d.stat[k].t>st[k].t)st[k]=d.stat[k]});LS.raw("stat",st);
+  Object.keys(d.best||{}).forEach(function(k){var x=best(k);if(x==null||d.best[k]>x)LS.raw("best:"+k,d.best[k])});
+  var mh=LS.get("mockhist",[]);if((d.mockhist||[]).length>mh.length)LS.raw("mockhist",d.mockhist);
+  var wb=LS.get("wb",{});Object.keys(d.wb||{}).forEach(function(k){if(!wb[k])wb[k]=d.wb[k]});LS.raw("wb",wb);
+  if(d.exam&&!LS.get("exam",""))LS.raw("exam",d.exam);
+  updBadge();
+}
+var pushT=null;
+function schedulePush(){if(!FB.user)return;clearTimeout(pushT);pushT=setTimeout(pushNow,2500)}
+function pushNow(cb){
+  if(!FB.user){cb&&cb(false);return}
+  var p=FB.prof||{};
+  db().collection("users").doc(FB.user.uid).set({email:FB.user.email||"",name:p.name||FB.user.displayName||"",seat:p.seat||"",cls:p.cls||"",tch:p.tch||"",updated:firebase.firestore.FieldValue.serverTimestamp(),d:snapshot()},{merge:true})
+   .then(function(){FB.syncAt=new Date();FB.err="";cb&&cb(true);var e=document.getElementById("syncst");if(e)e.textContent=syncText()})
+   .catch(function(e){FB.err="同步失敗："+e.message;cb&&cb(false);var x=document.getElementById("syncst");if(x)x.textContent=syncText()});
+}
+function syncText(){return FB.err?FB.err:FB.syncAt?"已同步 "+pad2(FB.syncAt.getHours())+":"+pad2(FB.syncAt.getMinutes()):"同步中…"}
+function onAuth(u){
+  FB.user=u;FB.prof=null;TC.classes=null;TC.list=null;TC.sel=null;var na=document.getElementById("navacc");if(na)na.textContent=u?"帳號":"登入";
+  if(!u){rerender();return}
+  db().collection("users").doc(u.uid).get().then(function(doc){
+    var x=doc.exists?doc.data():{};FB.prof={name:x.name||u.displayName||"",seat:x.seat||"",cls:x.cls||"",tch:x.tch||""};
+    mergeIn(x.d);pushNow();rerender();
+  }).catch(function(e){FB.err="讀取雲端資料失敗："+e.message;FB.prof={name:u.displayName||"",seat:"",cls:"",tch:""};rerender()});
+}
+function signIn(){
+  fbLoad(function(ok){if(!ok)return;var pv=new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(pv).catch(function(e){if(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment")firebase.auth().signInWithRedirect(pv);else if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request"){FB.err="登入失敗："+e.message;rerender()}})});
+}
+function signOut(){clearTimeout(pushT);pushNow(function(){firebase.auth().signOut()})}
+function account(){
+  var h='<section class="stack"><div><p class="eyebrow">帳號</p><h1>登入後，紀錄跟著你走</h1><p class="muted" style="margin-top:8px">用 Google 帳號登入，作答紀錄、錯題本和模擬考分數會同步到雲端，換手機或電腦也看得到。加入老師給的班級代碼，老師就能看到你的學習狀況。</p></div>';
+  if(!FB.on){app.innerHTML=h+'<div class="sheet"><p>雲端登入還沒啟用。網站管理者完成 Firebase 設定後就能使用。</p></div></section>';return}
+  if(!FB.ready){app.innerHTML=h+'<div class="sheet"><p class="muted">'+(FB.err||"載入中…")+'</p></div></section>';fbLoad(function(){if(location.hash==="#account")account()});return}
+  if(!FB.user){app.innerHTML=h+'<div class="sheet"><button class="btn" id="gin">用 Google 帳號登入</button>'+(FB.err?'<p class="muted" style="margin-top:8px">'+escH(FB.err)+'</p>':'')+'<p class="muted" style="margin-top:10px;font-size:14px">沒登入也能照常使用，紀錄只會存在這台裝置。</p></div></section>';document.getElementById("gin").onclick=signIn;return}
+  if(!FB.prof){app.innerHTML=h+'<div class="sheet"><p class="muted">讀取帳號資料中…</p></div></section>';return}
+  var p=FB.prof;
+  h+='<div class="sheet"><p>已登入：<b>'+escH(FB.user.email||FB.user.displayName||"")+'</b></p><p class="muted" id="syncst" style="font-size:14px;margin-top:4px">'+syncText()+'</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn ghost" id="snow">立即同步</button><button class="btn ghost" id="gout">登出</button></div></div>';
+  h+='<div class="sheet"><h2>我的班級</h2><p class="muted" style="margin:4px 0 10px">輸入老師給你的 6 碼班級代碼。加入後，老師就能看到你的作答狀況。</p><div class="acf"><label>姓名<input id="an" maxlength="20" value="'+escA(p.name)+'"></label><label>座號<input id="as" maxlength="6" inputmode="numeric" value="'+escA(p.seat)+'"></label><label>班級代碼<input id="ac" maxlength="6" style="text-transform:uppercase" value="'+escA(p.cls)+'"></label></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center"><button class="btn" id="asv">儲存</button><span class="muted" id="amsg" style="font-size:14px">'+(p.cls?'目前班級：'+escH(p.cls):'還沒加入班級')+'</span></div></div>';
+  h+='<p class="muted" style="font-size:14px">我是老師：<a href="#teacher">打開教師頁</a>建立班級。</p></section>';
+  app.innerHTML=h;
+  document.getElementById("gout").onclick=signOut;
+  document.getElementById("snow").onclick=function(){document.getElementById("syncst").textContent="同步中…";pushNow()};
+  document.getElementById("asv").onclick=function(){
+    var n=document.getElementById("an").value.trim(),s=document.getElementById("as").value.trim(),c=document.getElementById("ac").value.trim().toUpperCase(),m=document.getElementById("amsg");
+    if(!n){m.textContent="請輸入姓名。";return}
+    function save(tch){FB.prof={name:n,seat:s,cls:c,tch:tch};pushNow(function(ok){m.textContent=ok?(c?"已加入班級 "+c+"。":"已儲存。"):FB.err})}
+    if(!c){save("");return}
+    m.textContent="確認班級代碼中…";
+    db().collection("classes").doc(c).get().then(function(d){if(!d.exists){m.textContent="找不到這個班級代碼，請再跟老師確認。";return}save(d.data().teacher)}).catch(function(e){m.textContent="確認失敗："+e.message});
+  };
+}
+function newCode(){var a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",s="";for(var i=0;i<6;i++)s+=a.charAt(Math.floor(Math.random()*a.length));return s}
+function cloudToO(doc){
+  var x=doc.data(),d=x.d||{},s={};Object.keys(d.stat||{}).forEach(function(k){s[k]=[d.stat[k].r,d.stat[k].t]});
+  var up=x.updated&&x.updated.toDate?ymd(x.updated.toDate()):"";
+  return {n:(x.seat?x.seat+" ":"")+(x.name||x.email||"未命名"),d:up,s:s,b:d.best||{},m:(d.mockhist||[]).map(function(h){return h.score}),w:Object.keys(d.wb||{}).length,e:d.exam||""};
 }
 function lineChart(hist){
   var W=480,H=220,pl=36,pr=16,pt=16,pb=30,n=hist.length;
@@ -2727,7 +2860,7 @@ function bindEx(){
 }
 function route(){
   var hsh=(location.hash||"#home").slice(1);
-  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":hsh==="formulas"?"formulas":hsh==="wrongbook"?"wrongbook":hsh==="progress"?"progress":hsh==="sprint"?"sprint":hsh==="teacher"?"progress":"home"))});
+  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":hsh==="formulas"?"formulas":hsh==="wrongbook"?"wrongbook":hsh==="progress"?"progress":hsh==="sprint"?"sprint":hsh==="teacher"?"progress":hsh==="account"?"account":"home"))});
   if(hsh==="mock"){if(mock&&!mock.done&&document.getElementById("smap"))return;if(mock&&!mock.done){renderMock();return}mockSetup()}
   else if(hsh==="order")order();
   else if(hsh==="formulas")formulas();
@@ -2735,13 +2868,16 @@ function route(){
   else if(hsh==="progress")progress();
   else if(hsh==="sprint")sprint();
   else if(hsh==="teacher")teacher();
+  else if(hsh==="account")account();
   else if(byId[hsh])unit(byId[hsh]);
   else home();
+  var na=document.getElementById("navacc");if(na)na.classList.toggle("on",hsh==="account");
   if(hsh!=="mock")window.scrollTo(0,0);
 }
 function hh(){var t=document.querySelector("header.top");if(t)document.documentElement.style.setProperty("--hh",t.offsetHeight+"px")}
 window.addEventListener("resize",hh);hh();
 window.addEventListener("hashchange",route);updBadge();route();
+if(FB.on)setTimeout(function(){fbLoad()},300);else{var na0=document.getElementById("navacc");if(na0)na0.hidden=true}
 })();
 </script>
 

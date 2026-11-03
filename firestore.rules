@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 學生資料：本人可讀寫；班級老師（tch 欄位）可讀
+    match /users/{uid} {
+      allow read: if request.auth != null
+        && (request.auth.uid == uid || resource.data.tch == request.auth.uid);
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && (request.resource.data.cls == ""
+            || (exists(/databases/$(database)/documents/classes/$(request.resource.data.cls))
+                && request.resource.data.tch == get(/databases/$(database)/documents/classes/$(request.resource.data.cls)).data.teacher));
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+    // 班級：登入者可讀（學生要確認代碼），只有建立的老師能修改
+    match /classes/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.teacher == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.teacher == request.auth.uid;
+    }
+  }
+}
