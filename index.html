@@ -2647,7 +2647,7 @@ function teacherCloud(h){
   h+='<p class="muted">學生登入後輸入班級代碼加入，作答紀錄就會自動出現在這裡。</p>';
   if(!FB.on){app.innerHTML=h+'<div class="sheet"><p>雲端登入還沒啟用。網站管理者完成 Firebase 設定後就能使用；在那之前可以先用「成績碼」。</p></div></section>';return}
   if(!FB.ready){app.innerHTML=h+'<div class="sheet"><p class="muted">'+(FB.err||"載入中…")+'</p></div></section>';fbLoad(function(){if(location.hash==="#teacher")teacher()});return}
-  if(!FB.user){app.innerHTML=h+'<div class="sheet"><p>老師也用 Google 帳號登入，就能建立班級。</p><button class="btn" id="gin" style="margin-top:10px">用 Google 帳號登入</button></div></section>';document.getElementById("gin").onclick=signIn;return}
+  if(!FB.user){app.innerHTML=h+'<div class="sheet"><p>老師也用 Google 帳號登入，就能建立班級。</p><button class="btn" id="gin" style="margin-top:10px">用 Google 帳號登入</button>'+(FB.err?'<p class="muted" style="margin-top:8px">'+escH(FB.err)+'</p>':'')+'</div></section>';document.getElementById("gin").onclick=signIn;return}
   if(TC.classes==null){app.innerHTML=h+'<div class="sheet"><p class="muted">讀取班級中…</p></div></section>';
     db().collection("classes").where("teacher","==",FB.user.uid).get().then(function(q){TC.classes=q.docs.map(function(d){return {code:d.id,name:d.data().name}}).sort(function(a,b){return a.name.localeCompare(b.name,"zh-Hant",{numeric:true})});if(!TC.sel&&TC.classes.length)TC.sel=TC.classes[0].code;TC.list=null;tRe()}).catch(function(e){TC.classes=[];TC.msg="讀取班級失敗："+e.message;tRe()});return}
   h+='<div class="sheet"><h2>我的班級</h2>'+(TC.classes.length?'<div class="ranges" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'+TC.classes.map(function(c){return '<button class="chip'+(TC.sel===c.code?" on":"")+'" data-cc="'+c.code+'">'+escH(c.name)+'</button>'}).join("")+'</div>':'<p class="muted" style="margin-top:6px">還沒有班級，先建立一個。</p>')+
@@ -2741,7 +2741,7 @@ function onAuth(u){
 }
 function signIn(){
   fbLoad(function(ok){if(!ok)return;var pv=new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(pv).catch(function(e){if(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment")firebase.auth().signInWithRedirect(pv);else if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request"){FB.err="登入失敗："+e.message;rerender()}})});
+    firebase.auth().signInWithPopup(pv).catch(function(e){if(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment")firebase.auth().signInWithRedirect(pv);else if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request"){FB.err="登入失敗："+(e.code==="auth/configuration-not-found"||e.code==="auth/operation-not-allowed"?"Firebase 還沒啟用 Google 登入（請到 Authentication 按「開始使用」並啟用 Google）。":e.code==="auth/unauthorized-domain"?"這個網址還沒加進 Firebase 的授權網域。":e.message)+"（"+e.code+"）";rerender()}})});
 }
 function signOut(){clearTimeout(pushT);pushNow(function(){firebase.auth().signOut()})}
 function account(){
