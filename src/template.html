@@ -151,6 +151,17 @@ td.num{font-family:var(--f-mono);white-space:nowrap;font-variant-numeric:tabular
 .order li{margin-bottom:8px}
 .order ul{padding-left:1.3em;margin:8px 0 0}
 .chg{font-size:12px;padding:1px 6px;border-radius:4px;background:var(--hl);margin-left:6px;white-space:nowrap}
+/* wrongbook & progress */
+nav.main a .badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--red);color:var(--sheet);font-size:11px;line-height:18px;text-align:center;font-family:var(--f-mono)}
+.wbst{margin-top:6px;font-size:14px;font-weight:700;color:var(--teal)}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.tile{background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:12px 16px;display:flex;flex-direction:column}
+.tile span{font-size:13px;color:var(--muted)}
+.tile b{font-family:var(--f-mono);font-size:26px;font-variant-numeric:tabular-nums}
+.tile small{font-size:13px;color:var(--muted);font-weight:400}
+.weak{margin:8px 0 6px;padding-left:1.4em;display:flex;flex-direction:column;gap:6px}
+.weak li span{margin-left:10px;color:var(--red);font-size:14px}
+tr.grow td{font-family:var(--f-display);font-weight:700;padding-top:14px;color:var(--teal)}
 /* formulas */
 .fm{display:grid;background:var(--sheet);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .fm-row{display:grid;grid-template-columns:10em 1fr;gap:4px 16px;padding:12px 18px;border-top:1px solid var(--line)}
@@ -164,6 +175,9 @@ td.num{font-family:var(--f-mono);white-space:nowrap;font-variant-numeric:tabular
 .fm-filter{display:flex;gap:8px;flex-wrap:wrap}
 @media (max-width:640px){
   .fm-row{grid-template-columns:1fr}
+  .tiles{grid-template-columns:1fr 1fr}
+  .ptbl th:nth-child(3),.ptbl td:nth-child(3){display:none}
+  .ptbl td:first-child{min-width:10em}
   .fm-row .nt{grid-column:1}
   .hero,.res-top{grid-template-columns:1fr}
   .prog{text-align:left}
@@ -184,8 +198,9 @@ td.num{font-family:var(--f-mono);white-space:nowrap;font-variant-numeric:tabular
   <nav class="main" aria-label="主選單">
     <a href="#home" data-nav="home">單元</a>
     <a href="#formulas" data-nav="formulas">公式</a>
+    <a href="#wrongbook" data-nav="wrongbook">錯題本</a>
+    <a href="#progress" data-nav="progress">進度</a>
     <a href="#mock" data-nav="mock">模擬考</a>
-    <a href="#order" data-nav="order">順序說明</a>
   </nav>
 </div></header>
 <main class="wrap" id="app"></main>
@@ -212,7 +227,7 @@ var L="ABCD";
 function home(){
   var done=UNITS.filter(function(u){return best(u.id)!=null}).length;
   var h='<section class="hero"><div><p class="eyebrow">國中教育會考・數學科</p><h1>六冊 28 個單元，一頁一頁複習到會考</h1><p class="lead">每個單元都有重點複習、易錯觀念、會考難題拆解和練習 10 題。標上「難」的單元多了白話講解和口訣。全部讀完，去做一回模擬考，看看哪裡還要補。</p></div>'+
-  '<div class="prog"><div class="muted">已練習單元</div><b>'+done+'</b><span class="muted"> / '+UNITS.length+'</span><div style="margin-top:10px"><a class="btn" href="#mock">開始模擬考</a></div></div></section>';
+  '<div class="prog"><div class="muted">已練習單元</div><b>'+done+'</b><span class="muted"> / '+UNITS.length+'</span><div style="margin-top:10px"><a class="btn" href="#mock">開始模擬考</a></div></div></section><p class="muted" style="margin-top:14px">單元順序和調整說明見 <a href="#order">單元順序說明</a>。</p>';
   GR.forEach(function(g){
     var us=UNITS.filter(function(u){return u.g===g});
     h+='<section class="grade"><div class="grade-h"><h2>'+g+'</h2><small>'+GRN[g]+'・'+us.length+' 個單元</small></div><div class="units">';
@@ -263,7 +278,7 @@ function mkQ(raw){return {q:raw[0],c:raw[1],opts:shuffle([raw[1],raw[2],raw[3],r
 var pmode=LS.get("pmode","seq");
 function practice(u){
   var box=document.getElementById("qzbox");
-  var qs=u.qz.map(mkQ),answered=0,right=0;
+  var qs=u.qz.map(function(r,k){var q=mkQ(r);q.key=u.id+":"+k;q.u=u.id;return q}),answered=0,right=0;
   if(pmode==="rnd")qs=shuffle(qs);
   var h='<div class="ranges" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="muted">出題方式</span>'+[["seq","依序出題"],["rnd","隨機出題"]].map(function(m){return '<button class="chip'+(pmode===m[0]?" on":"")+'" data-m="'+m[0]+'" aria-pressed="'+(pmode===m[0])+'">'+m[1]+'</button>'}).join("")+(pmode==="rnd"?'<span class="muted" style="font-size:14px">題目順序已打亂，每次重新練習都會換順序</span>':"")+'</div>';
   h+=qs.map(function(q,k){return qHTML(q,k,"p")}).join("");
@@ -274,7 +289,7 @@ function practice(u){
       var card=b.closest(".qcard"),ok=q.opts[+b.dataset.i]===q.c;
       card.querySelectorAll(".opt").forEach(function(x){x.disabled=true;if(q.opts[+x.dataset.i]===q.c)x.classList.add("right")});
       if(!ok)b.classList.add("wrong");
-      var ex=document.createElement("div");ex.className="exp "+(ok?"ok":"no");ex.innerHTML="<b>"+(ok?"答對了":"答錯了，正解是 "+fmt(q.c))+"</b>"+fmt(q.e);card.appendChild(ex);
+      var ex=document.createElement("div");ex.className="exp "+(ok?"ok":"no");var wst=record(q.key,u.id,ok);ex.innerHTML="<b>"+(ok?"答對了":"答錯了，正解是 "+fmt(q.c))+"</b>"+fmt(q.e)+(wst?'<div class="wbst">'+wbStatusText(wst)+'</div>':"");card.appendChild(ex);
       answered++;if(ok)right++;
       document.getElementById("sbn").textContent=right+" / 10";
       if(answered===10){
@@ -315,7 +330,7 @@ function startMock(){
     var taken={};pick.forEach(function(o){taken[o.key]=1});
     pick=pick.concat(shuffle(mixAll.filter(function(o){return !taken[o.key]})).slice(0,NMIX-pick.length));
   }
-  var qs=pick.map(function(o){seen[o.key]=1;return {q:o.x.q,c:o.x.c,opts:shuffle([o.x.c].concat(o.x.w)),e:o.x.e,u:o.x.u,mix:true}});
+  var qs=pick.map(function(o){seen[o.key]=1;return {q:o.x.q,c:o.x.c,opts:shuffle([o.x.c].concat(o.x.w)),e:o.x.e,u:o.x.u,mix:true,key:o.key}});
   /* 基本題：從各單元練習題平均抽，同樣先出沒考過的 */
   var us=UNITS.filter(function(u){return inRange(u.g)});
   var basicKeys=[];us.forEach(function(u){u.qz.forEach(function(_,k){basicKeys.push(u.id+":"+k)})});
@@ -328,7 +343,7 @@ function startMock(){
       var u=us[i],free=u.qz.map(function(_,k){return k}).filter(function(k){return !seen[u.id+":"+k]});
       if(!free.length)continue;
       var k=free[Math.floor(Math.random()*free.length)];seen[u.id+":"+k]=1;
-      var q=mkQ(u.qz[k]);q.u=u.id;qs.push(q);nb++;
+      var q=mkQ(u.qz[k]);q.u=u.id;q.key=u.id+":"+k;qs.push(q);nb++;
     }
     guard++;
   }
@@ -367,6 +382,8 @@ function finish(){
   var score=Math.round(right/qs.length*100);
   var mixT=qs.filter(function(q){return q.mix}),mixR=mixT.filter(function(q){return q.ok}).length,basT=qs.length-mixT.length,basR=right-mixR;
   var d=new Date();LS.set("mocklast",{score:score,right:right,total:qs.length,date:(d.getMonth()+1)+"/"+d.getDate()});
+  var hist=LS.get("mockhist",[]);hist.push({d:(d.getMonth()+1)+"/"+d.getDate(),score:score,label:mock.label});LS.set("mockhist",hist.slice(-50));
+  var added=0;qs.forEach(function(q){var st=record(q.key,q.u,q.ok);if(st==="added")added++});
   var R=54,C=2*Math.PI*R;
   var h='<section class="stack"><div><p class="eyebrow">模擬考結果</p><h1>答題狀況</h1></div>';
   h+='<div class="sheet res-top"><svg class="ring" viewBox="0 0 132 132" role="img" aria-label="得分 '+score+' 分"><circle cx="66" cy="66" r="'+R+'" fill="none" stroke="var(--line)" stroke-width="12"/><circle cx="66" cy="66" r="'+R+'" fill="none" stroke="'+(score>=60?"var(--teal)":"var(--red)")+'" stroke-width="12" stroke-linecap="round" stroke-dasharray="'+(C*right/qs.length)+' '+C+'" transform="rotate(-90 66 66)"/><text x="66" y="64" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="34" fill="var(--ink)">'+score+'</text><text x="66" y="88" text-anchor="middle" font-size="13" fill="var(--muted)">分</text></svg>'+
@@ -375,7 +392,7 @@ function finish(){
   h+='<div class="sheet"><h2>各單元答對率</h2><p class="muted" style="margin:4px 0 10px">由最弱排到最強，點單元名稱可以直接回去複習。</p><div class="tbl"><table><thead><tr><th>單元</th><th>答對</th><th style="width:30%">答對率</th></tr></thead><tbody>'+
     rows.map(function(x){var p=x.r/x.t;return '<tr><td><a href="#'+x.u.id+'">'+x.u.g+'・'+x.u.t+'</a></td><td class="num">'+x.r+' / '+x.t+'</td><td><div class="bar'+(p<0.5?" low":"")+'"><i style="width:'+Math.round(p*100)+'%"></i></div></td></tr>'}).join("")+'</tbody></table></div></div>';
   var wrong=qs.map(function(q,k){q.k=k;return q}).filter(function(q){return !q.ok});
-  h+='<div><h2>錯題解析</h2><p class="muted">'+(wrong.length?'共 '+wrong.length+' 題，看完解析再回到對應單元練習。':'全部答對，沒有錯題！')+'</p></div>';
+  h+='<div><h2>錯題解析</h2><p class="muted">'+(wrong.length?'共 '+wrong.length+' 題，看完解析再回到對應單元練習。':'全部答對，沒有錯題！')+(added?'這次有 '+added+' 題新收進<a href="#wrongbook">錯題本</a>。':'')+'</p></div>';
   h+=wrong.map(function(q){return '<div class="qcard wrongq"><div class="qn">第 '+(q.k+1)+' 題・<a href="#'+q.u+'">'+byId[q.u].t+'</a></div><p class="qt">'+fmt(q.q)+'</p><p class="yours">你的答案：'+(q.yours==null?'未作答':fmt(q.yours))+'</p><p class="corr">正確答案：'+fmt(q.c)+'</p><div class="exp no"><b>解析</b>'+fmt(q.e)+'</div></div>'}).join("");
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="again">再考一回</button><a class="btn ghost" href="#home">回單元列表</a></div></section>';
   app.innerHTML=h;window.scrollTo(0,0);
@@ -418,18 +435,118 @@ function formulas(){
   app.innerHTML=h;
   app.querySelectorAll(".fm-filter .chip").forEach(function(c){c.onclick=function(){fmGrade=c.dataset.g;formulas()}});
 }
+
+/* ---------- 錯題本與學習紀錄 ---------- */
+function keyQ(key){
+  var p=key.split(":");
+  if(p[0]==="x"){var x=EXTRA[+p[1]];if(!x)return null;return {q:x.q,c:x.c,opts:shuffle([x.c].concat(x.w)),e:x.e,u:x.u,key:key,mix:true}}
+  var u=byId[p[0]];if(!u||!u.qz[+p[1]])return null;var q=mkQ(u.qz[+p[1]]);q.u=u.id;q.key=key;return q;
+}
+function record(key,uid,ok){
+  var wb=LS.get("wb",{}),st=LS.get("stat",{});
+  var s=st[uid]=st[uid]||{r:0,t:0};s.t++;if(ok)s.r++;
+  var w=wb[key],status="";
+  if(!ok){wb[key]={s:0,n:(w?w.n:0)+1,t:Date.now()};status=w?"still":"added"}
+  else if(w){w.s++;if(w.s>=2){delete wb[key];status="removed"}else status="streak"}
+  LS.set("wb",wb);LS.set("stat",st);updBadge();return status;
+}
+function wbStatusText(st,key){
+  if(st==="added")return "已收進錯題本。";
+  if(st==="still")return "這題還在錯題本裡，連續答對歸零。";
+  if(st==="streak")return "錯題本：已連續答對 1 次，再對 1 次就移出。";
+  if(st==="removed")return "連續答對 2 次，已從錯題本移出！";
+  return "";
+}
+function updBadge(){var n=Object.keys(LS.get("wb",{})).length,a=document.querySelector('nav.main a[data-nav="wrongbook"]');if(a)a.innerHTML="錯題本"+(n?'<span class="badge">'+n+'</span>':"")}
+
+var wbUnit="all";
+function wrongbook(){
+  var wb=LS.get("wb",{}),keys=Object.keys(wb).filter(function(k){return keyQ(k)});
+  var cnt={};keys.forEach(function(k){var u=keyQ(k).u;cnt[u]=(cnt[u]||0)+1});
+  if(wbUnit!=="all"&&!cnt[wbUnit])wbUnit="all";
+  var h='<section class="stack"><div><p class="eyebrow">錯題本</p><h1>錯過的題目，再做到會為止</h1><p class="muted" style="margin-top:8px">練習 10 題和模擬考答錯（含未作答）的題目會自動收進來。同一題<b>連續答對 2 次</b>就會自動移出。</p></div>';
+  if(!keys.length){
+    h+='<div class="sheet"><p><b>錯題本是空的。</b>去單元做練習 10 題，或考一回模擬考，答錯的題目就會出現在這裡。</p><div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><a class="btn" href="#mock">考一回模擬考</a><a class="btn ghost" href="#home">回單元列表</a></div></div></section>';
+    app.innerHTML=h;return;
+  }
+  var units=UNITS.filter(function(u){return cnt[u.id]});
+  h+='<div class="sheet"><p>目前共 <b>'+keys.length+'</b> 題，分布在 '+units.length+' 個單元。選一個單元只練那個單元的錯題：</p><div class="fm-filter" style="margin-top:10px"><button class="chip'+(wbUnit==="all"?" on":"")+'" data-w="all">全部（'+keys.length+'）</button>'+units.map(function(u){return '<button class="chip'+(wbUnit===u.id?" on":"")+'" data-w="'+u.id+'">'+u.g+'・'+u.t+'（'+cnt[u.id]+'）</button>'}).join("")+'</div></div>';
+  var list=keys.map(keyQ).filter(function(q){return wbUnit==="all"||q.u===wbUnit});
+  list.sort(function(a,b){return byId[a.u].n-byId[b.u].n});
+  h+='<div class="stack" id="wblist">'+list.map(function(q,k){var w=wb[q.key];return qHTML(q,k,"w",(q.mix?"模擬考題・":"基本題・")+byId[q.u].t+'・錯過 '+w.n+' 次'+(w.s?'・已連對 '+w.s+' 次':''))}).join("")+'</div>';
+  h+='<div class="sheet" id="wbclear"><button class="btn ghost" id="clr">清空錯題本</button></div></section>';
+  app.innerHTML=h;
+  app.querySelectorAll(".chip[data-w]").forEach(function(c){c.onclick=function(){wbUnit=c.dataset.w;wrongbook()}});
+  list.forEach(function(q,k){
+    app.querySelectorAll('[data-q="w'+k+'"] .opt').forEach(function(b){b.onclick=function(){
+      var card=b.closest(".qcard"),ok=q.opts[+b.dataset.i]===q.c;
+      card.querySelectorAll(".opt").forEach(function(x){x.disabled=true;if(q.opts[+x.dataset.i]===q.c)x.classList.add("right")});
+      if(!ok)b.classList.add("wrong");
+      var st=record(q.key,q.u,ok);
+      var ex=document.createElement("div");ex.className="exp "+(ok?"ok":"no");ex.innerHTML="<b>"+(ok?"答對了":"答錯了，正解是 "+fmt(q.c))+"</b>"+fmt(q.e)+'<div class="wbst">'+wbStatusText(st)+'</div>';card.appendChild(ex);
+    }});
+  });
+  document.getElementById("clr").onclick=function(){
+    var c=document.getElementById("wbclear");
+    c.innerHTML='<p><b>確定要清空錯題本嗎？</b>清空後無法復原。</p><div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn" id="cy">確定清空</button><button class="btn ghost" id="cn">取消</button></div>';
+    document.getElementById("cy").onclick=function(){LS.set("wb",{});updBadge();wrongbook()};
+    document.getElementById("cn").onclick=wrongbook;
+  };
+}
+
+/* ---------- 學習進度 ---------- */
+function progress(){
+  var st=LS.get("stat",{}),hist=LS.get("mockhist",[]),wbn=Object.keys(LS.get("wb",{})).length;
+  var done=UNITS.filter(function(u){return best(u.id)!=null}).length;
+  var h='<section class="stack"><div><p class="eyebrow">學習進度</p><h1>看看哪裡最需要補強</h1><p class="muted" style="margin-top:8px">統計所有練習 10 題、錯題本和模擬考的作答紀錄。紀錄存在這台裝置的瀏覽器裡，換裝置或清除瀏覽資料會重新計算。</p></div>';
+  var last=hist.length?hist[hist.length-1].score:null;
+  h+='<div class="tiles"><div class="tile"><span>已練習單元</span><b>'+done+'<small> / '+UNITS.length+'</small></b></div><div class="tile"><span>模擬考次數</span><b>'+hist.length+'</b></div><div class="tile"><span>最近模擬考</span><b>'+(last==null?"—":last+'<small> 分</small>')+'</b></div><div class="tile"><span>錯題本</span><b>'+wbn+'<small> 題</small></b></div></div>';
+  /* 最弱單元 */
+  var rated=UNITS.filter(function(u){return st[u.id]&&st[u.id].t>=3}).map(function(u){return {u:u,p:st[u.id].r/st[u.id].t,t:st[u.id].t}}).sort(function(a,b){return a.p-b.p||b.t-a.t});
+  h+='<div class="sheet"><h2>最該先複習的單元</h2>';
+  if(rated.length){
+    h+='<ol class="weak">'+rated.slice(0,3).map(function(x){return '<li><a href="#'+x.u.id+'">'+x.u.g+'・'+x.u.t+'</a><span class="num">答對率 '+Math.round(x.p*100)+'%（'+x.t+' 題）</span></li>'}).join("")+'</ol>';
+    var untouched=UNITS.filter(function(u){return !st[u.id]}).length;
+    if(untouched)h+='<p class="muted">另外還有 '+untouched+' 個單元還沒作答過。</p>';
+  }else h+='<p class="muted" style="margin-top:6px">每個單元至少作答 3 題後，這裡會列出答對率最低的單元。</p>';
+  h+='</div>';
+  /* 模擬考趨勢 */
+  h+='<div class="sheet"><h2>模擬考分數變化</h2>'+(hist.length?lineChart(hist.slice(-15)):'<p class="muted" style="margin-top:6px">考完第一回模擬考後，這裡會畫出每一回的分數。</p>')+'</div>';
+  /* 各單元答對率 */
+  h+='<div class="sheet"><h2>各單元答對率</h2><p class="muted" style="margin:4px 0 10px">紅色是答對率低於 60% 的單元；灰色表示還沒作答。</p><div class="tbl"><table class="ptbl"><thead><tr><th>單元</th><th>答對率</th><th style="width:34%"></th><th>練習最佳</th></tr></thead><tbody>';
+  GR.forEach(function(g){
+    h+='<tr class="grow"><td colspan="4">'+g+'</td></tr>';
+    UNITS.filter(function(u){return u.g===g}).forEach(function(u){
+      var s=st[u.id],p=s?s.r/s.t:null,b=best(u.id);
+      h+='<tr><td><a href="#'+u.id+'">'+u.t+'</a></td><td class="num">'+(p==null?"—":Math.round(p*100)+"%")+'</td><td><div class="bar'+(p!=null&&p<0.6?" low":"")+'"><i style="width:'+(p==null?0:Math.round(p*100))+'%"></i></div></td><td class="num">'+(b==null?"—":b+" / 10")+'</td></tr>';
+    });
+  });
+  h+='</tbody></table></div></div></section>';
+  app.innerHTML=h;
+}
+function lineChart(hist){
+  var W=480,H=220,pl=36,pr=16,pt=16,pb=30,n=hist.length;
+  var x=function(i){return n===1?pl+(W-pl-pr)/2:pl+i*(W-pl-pr)/(n-1)},y=function(v){return pt+(100-v)*(H-pt-pb)/100};
+  var g='';[0,20,40,60,80,100].forEach(function(v){g+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="var(--line)" stroke-width="1"/><text x="'+(pl-8)+'" y="'+(y(v)+4)+'" text-anchor="end" font-size="11" fill="var(--muted)">'+v+'</text>'});
+  var pts=hist.map(function(h,i){return x(i)+","+y(h.score)}).join(" ");
+  var area=n>1?'<polygon points="'+x(0)+','+y(0)+' '+pts+' '+x(n-1)+','+y(0)+'" fill="var(--teal)" opacity=".12"/>':'';
+  var dots=hist.map(function(h,i){var lastp=i===n-1;return '<circle cx="'+x(i)+'" cy="'+y(h.score)+'" r="'+(lastp?5:3.5)+'" fill="'+(lastp?"var(--teal)":"var(--sheet)")+'" stroke="var(--teal)" stroke-width="2"><title>'+h.d+'：'+h.score+' 分（'+h.label+'）</title></circle>'+(lastp?'<text x="'+x(i)+'" y="'+(y(h.score)-10)+'" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">'+h.score+'</text>':'')+'<text x="'+x(i)+'" y="'+(H-10)+'" text-anchor="middle" font-size="10" fill="var(--muted)">'+h.d+'</text>'}).join("");
+  return '<div class="tbl"><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;min-width:320px;height:auto;display:block;margin-top:8px" role="img" aria-label="模擬考分數折線圖">'+g+area+(n>1?'<polyline points="'+pts+'" fill="none" stroke="var(--teal)" stroke-width="2.5"/>':'')+dots+'</svg></div><p class="muted" style="font-size:14px">顯示最近 '+n+' 回。</p>';
+}
 function route(){
   var hsh=(location.hash||"#home").slice(1);
-  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":hsh==="formulas"?"formulas":"home"))});
+  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":hsh==="formulas"?"formulas":hsh==="wrongbook"?"wrongbook":hsh==="progress"?"progress":"home"))});
   if(hsh==="mock"){if(mock&&!mock.done&&document.getElementById("smap"))return;if(mock&&!mock.done){renderMock();return}mockSetup()}
   else if(hsh==="order")order();
   else if(hsh==="formulas")formulas();
+  else if(hsh==="wrongbook")wrongbook();
+  else if(hsh==="progress")progress();
   else if(byId[hsh])unit(byId[hsh]);
   else home();
   if(hsh!=="mock")window.scrollTo(0,0);
 }
 function hh(){var t=document.querySelector("header.top");if(t)document.documentElement.style.setProperty("--hh",t.offsetHeight+"px")}
 window.addEventListener("resize",hh);hh();
-window.addEventListener("hashchange",route);route();
+window.addEventListener("hashchange",route);updBadge();route();
 })();
 </script>
