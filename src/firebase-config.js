@@ -1,1 +1,1 @@
-var FB_CONFIG=null;
+var FB_CONFIG={apiKey:"AIzaSyCgzoDn1YcH5a75qcmnpgGNPuLPLtWVmPQ",authDomain:"juniorhighschoolmath.firebaseapp.com",projectId:"juniorhighschoolmath",storageBucket:"juniorhighschoolmath.firebasestorage.app",messagingSenderId:"704558589195",appId:"1:704558589195:web:0bb5b6cae13b99b88bae0e"};
