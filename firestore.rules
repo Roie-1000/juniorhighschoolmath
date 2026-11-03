@@ -19,10 +19,28 @@ service cloud.firestore {
         && request.resource.data.cls == "" && request.resource.data.tch == "";
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
+    function isTeacher(code) {
+      return request.auth != null && cls(code).teacher == request.auth.uid;
+    }
+    function isMember(code) {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.cls == code;
+    }
     match /classes/{code} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.teacher == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.teacher == request.auth.uid;
+      // 排行榜：同班同學和老師可讀；學生只能寫自己那一筆；老師可刪除
+      match /board/{uid} {
+        allow read: if isTeacher(code) || isMember(code);
+        allow create, update: if request.auth != null && request.auth.uid == uid && isMember(code);
+        allow delete: if isTeacher(code) || (request.auth != null && request.auth.uid == uid);
+      }
+      // 公告：同班同學和老師可讀；只有老師能發布和刪除
+      match /posts/{pid} {
+        allow read: if isTeacher(code) || isMember(code);
+        allow create, delete: if isTeacher(code);
+      }
     }
   }
 }
