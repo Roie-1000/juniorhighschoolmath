@@ -120,6 +120,8 @@ p{margin:0}
 .week{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
 .week div{border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--sheet);font-size:14px}
 .week div b{display:block;margin-bottom:4px}
+details.wk{margin-bottom:8px}
+details.wk summary{cursor:pointer;font-weight:700;padding:8px 0}
 .sprint-in{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .sprint-in input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);color:var(--ink)}
 .hp ol{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:10px}
@@ -2586,9 +2588,9 @@ function today(){return ymd(new Date())}
 function addDays(s,n){var d=new Date(s+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d)}
 function dayDiff(a,b){return Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/864e5)}
 function daysLeft(){var e=LS.get("exam",null);return e?dayDiff(today(),e):null}
-function phaseOf(D){return D<=3?["考前收心","最後幾天不要硬拚新題，看公式、翻錯題本，維持手感就好。"]:D<=14?["衝刺期","每天少量單元＋模擬考，重點放在錯題和弱點。"]:D<=60?["加強期","每天 2～3 個單元，固定做模擬考，把弱單元補起來。"]:["打底期","每天一個單元慢慢讀，把六冊完整走過一輪。"]}
-function perDay(D){if(D<=3)return 0;var k=Math.min(4,Math.max(1,Math.ceil(56/D)));return D<=14?Math.min(k,2):k}
-function mockGap(D){return D<=3?99:D<=14?2:D<=60?3:7}
+function phaseOf(D){return D<14?["自主複習","考前兩週不排進度了，自己挑弱點複習：多考模擬考、把錯題本清空、看公式頁。"]:D<=30?["衝刺期","每天 2～4 個單元＋模擬考，把最弱的單元再過一次。"]:D<=60?["加強期","每天 1～2 個單元，固定做模擬考，把弱單元補起來。"]:["打底期","每天一個單元慢慢讀，把六冊完整走過一輪。"]}
+function perDay(D){if(D<14)return 0;return Math.min(4,Math.max(1,Math.ceil(28/(D-13))))}
+function mockGap(D){return D<14?99:D<=30?2:D<=60?3:7}
 function unitRank(){
   var st=LS.get("stat",{});
   function b(u){var s=st[u.id];if(!s||s.t<3)return 1;var a=s.r/s.t;return a<.6?0:a<.8?2:3}
@@ -2605,7 +2607,7 @@ function sprintPlan(){
   if(left.length<k){pass=[];left=rank}
   var units=left.slice(0,k);pass=pass.concat(units);LS.set("sprintPass",pass);
   var lm=LS.get("lastMock",null),gap=mockGap(D);
-  var mk=D>3&&(!lm||dayDiff(lm,t)>=gap||D<=1);
+  var mk=D>=14&&(!lm||dayDiff(lm,t)>=gap);
   day={date:t,exam:LS.get("exam",""),units:units,mock:mk};LS.set("sprintDay",day);return day;
 }
 function sprintTasks(day){
@@ -2613,7 +2615,7 @@ function sprintTasks(day){
   day.units.forEach(function(id){var u=byId[id];list.push({k:"u:"+id,t:"練習 10 題："+u.g+"・"+u.t,d:"先看重點複習和易錯觀念，再做 10 題。",href:"#"+id,auto:LS.get("lastPractice:"+id,"")===t,n:10})});
   if(day.mock)list.push({k:"mock",t:"考一回模擬考（25 題）",d:"建議計時 60 分鐘，考完看錯題解析。",href:"#mock",auto:LS.get("lastMock","")===t,n:25});
   if(wb)list.push({k:"wb",t:"錯題本重做 "+Math.min(10,wb)+" 題",d:"錯題本目前有 "+wb+" 題，挑最前面的先做。",href:"#wrongbook",auto:false,n:Math.min(10,wb)});
-  if(D<=3)list.push({k:"fm",t:"把公式頁從頭看一遍",d:"看到不熟的公式，點回單元再讀一次。",href:"#formulas",auto:false,n:0});
+  if(D<14)list.push({k:"fm",t:"把公式頁從頭看一遍",d:"看到不熟的公式，點回單元再讀一次。",href:"#formulas",auto:false,n:0});
   return list;
 }
 function homeCD(){
@@ -2634,18 +2636,20 @@ function sprint(){
   h+='<div class="sheet"><div class="cd">'+(D===0?'<b>今天</b><span>就是會考，深呼吸，你準備好了！</span>':'<span>距離會考還有</span><b>'+D+'</b><span>天</span>')+'</div><p style="margin-top:10px"><span class="phase">'+ph[0]+'</span> '+ph[1]+'</p></div>';
   h+='<div><h2>今日任務</h2><p class="muted" style="margin:4px 0 10px">'+today().slice(5).replace("-","/")+'・約 '+total+' 題・完成 '+dn+' / '+tasks.length+'。做完練習或模擬考會自動打勾，也可以自己勾。</p><ul class="tasks">'+
     tasks.map(function(x){var ok=x.auto||chk[x.k];return '<li class="'+(ok?"done":"")+'"><input type="checkbox" data-k="'+x.k+'"'+(ok?" checked":"")+(x.auto?" disabled":"")+' aria-label="'+x.t+'"><div><div class="tt">'+x.t+'</div><div class="muted" style="font-size:14px">'+x.d+'</div></div><a class="btn ghost go" href="'+x.href+'">去做</a></li>'}).join("")+'</ul></div>';
-  // 7-day preview
+  // schedule until 2 weeks before
   var pass=LS.get("sprintPass",[]),rank=unitRank().map(function(u){return u.id}),left=rank.filter(function(id){return pass.indexOf(id)<0});
-  var lm=LS.get("lastMock","")===today()||day.mock?today():LS.get("lastMock",null),wk='';
-  for(var i=1;i<=Math.min(7,D);i++){
-    var dd=addDays(today(),i),Di=D-i,k=perDay(Di),us=[];
+  var lm=LS.get("lastMock","")===today()||day.mock?today():LS.get("lastMock",null),end=addDays(e,-14),rows=[];
+  for(var i=1;D-i>=14;i++){
+    var dd=addDays(today(),i),Di=D-i,k=perDay(D),us=[];
     for(var j=0;j<k;j++){if(!left.length)left=rank.slice();us.push(left.shift())}
-    var mk=Di>3&&(!lm||dayDiff(lm,dd)>=mockGap(Di));if(mk)lm=dd;
-    wk+='<div><b>'+dd.slice(5).replace("-","/")+(Di===0?"・會考":"")+'</b>'+(Di===0?'加油！':(us.length?us.map(function(id){return byId[id].t}).join("、"):'看公式、翻錯題本')+(mk?'<br><span style="color:var(--teal)">＋模擬考</span>':''))+'</div>';
+    var mk=!lm||dayDiff(lm,dd)>=mockGap(Di);if(mk)lm=dd;
+    rows.push('<div><b>'+dd.slice(5).replace("-","/")+'</b>'+us.map(function(id){return byId[id].t}).join("、")+(mk?'<br><span style="color:var(--teal)">＋模擬考</span>':'')+'</div>');
   }
-  if(wk)h+='<div><h2>接下來 '+Math.min(7,D)+' 天</h2><p class="muted" style="margin:4px 0 10px">預排，會依你每天的答對率重新調整。</p><div class="week">'+wk+'</div></div>';
-  var covered=pass.length;
-  h+='<p class="muted" style="font-size:14px">這一輪已排 '+covered+' / '+UNITS.length+' 個單元，排完會從最弱的單元開始下一輪。</p></section>';
+  if(D>=14){
+    var wks='';for(var w=0;w*7<rows.length;w++){var r=rows.slice(w*7,w*7+7);wks+='<details'+(w===0?' open':'')+' class="wk"><summary>第 '+(w+1)+' 週（'+r.length+' 天）</summary><div class="week">'+r.join("")+'</div></details>'}
+    h+='<div><h2>進度表（排到 '+end.slice(5).replace("-","/")+'，考前兩週）</h2><p class="muted" style="margin:4px 0 10px">從明天起共 '+rows.length+' 天。每天會依你的答對率重新調整，弱的單元會往前排。</p>'+wks+'<div class="sheet" style="margin-top:8px"><b>'+addDays(e,-13).slice(5).replace("-","/")+' 起：考前兩週不排進度</b><p class="muted" style="margin-top:4px">自己安排複習：多考模擬考、清錯題本、看公式頁。</p></div></div>';
+  }
+  h+='<p class="muted" style="font-size:14px">這一輪已排 '+pass.length+' / '+UNITS.length+' 個單元，排完會從最弱的單元開始下一輪。</p></section>';
   app.innerHTML=h;bindEx();
   app.querySelectorAll(".tasks input").forEach(function(c){c.onchange=function(){var m=LS.get("sprintChk:"+today(),{});m[c.dataset.k]=c.checked;LS.set("sprintChk:"+today(),m);sprint()}});
 }
