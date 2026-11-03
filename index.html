@@ -104,6 +104,24 @@ p{margin:0}
 .err .w p{text-decoration:line-through;text-decoration-color:var(--red);text-decoration-thickness:2px}
 .hp{background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:20px}
 .hp .q{font-weight:700;margin-bottom:14px}
+.fig{margin:4px 0 14px;max-width:260px}
+.fig svg{width:100%;height:auto;display:block}
+.fig figcaption{font-size:12px;color:var(--muted);margin-top:2px}
+.cd{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.cd b{font-family:var(--f-mono);font-size:44px;line-height:1;color:var(--teal)}
+.phase{display:inline-block;padding:2px 10px;border-radius:12px;background:var(--teal-soft);color:var(--teal);font-weight:700;font-size:14px}
+.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.tasks li{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--sheet)}
+.tasks li.done{opacity:.6}
+.tasks li.done .tt{text-decoration:line-through}
+.tasks input{width:20px;height:20px;margin-top:2px;accent-color:var(--teal);flex:none}
+.tasks .tt{font-weight:700}
+.tasks .go{margin-left:auto;white-space:nowrap}
+.week{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.week div{border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--sheet);font-size:14px}
+.week div b{display:block;margin-bottom:4px}
+.sprint-in{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sprint-in input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);color:var(--ink)}
 .hp ol{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:10px}
 .hp li{counter-increment:s;display:grid;grid-template-columns:2em 1fr;gap:8px}
 .hp li::before{content:counter(s);font-family:var(--f-mono);width:1.8em;height:1.8em;border-radius:50%;background:var(--teal-soft);color:var(--teal);display:grid;place-items:center;font-size:13px;margin-top:2px}
@@ -209,6 +227,7 @@ tr.grow td{font-family:var(--f-display);font-weight:700;padding-top:14px;color:v
     <a href="#wrongbook" data-nav="wrongbook">錯題本</a>
     <a href="#progress" data-nav="progress">進度</a>
     <a href="#mock" data-nav="mock">模擬考</a>
+    <a href="#sprint" data-nav="sprint">衝刺</a>
   </nav>
 </div></header>
 <main class="wrap" id="app"></main>
@@ -2171,6 +2190,32 @@ F("u28",[
 ["兩顆骰子","共 6 × 6 = 36 種",""]
 ]);
 
+var FIGS=[];function FIG(m,f){FIGS.push([m,f])}
+FIG(["△ABC 中 DE // BC", "△ABC 中，D 在 AB 上、E 在 AC 上，DE // BC", "△ABC 中 D、E 分別是 AB、AC 的中點"],{"P":{"A":[100,15],"B":[25,170],"C":[185,170],"D":[71.5,73.9],"E":[132.3,73.9]},"L":["AB","AC","BC","DE"]});
+FIG(["直角 △ABC 中 ∠C = 90°，CD ⊥ AB 於 D"],{"P":{"A":[20,160],"B":[200,160],"C":[70,79.4],"D":[70,160]},"L":["AB","AC","BC","CD"],"R":[["C","A","B"],["D","B","C"]]});
+FIG(["從圓外一點 P 作兩切線", "從圓外一點 P 作圓 O 的兩條切線"],{"P":{"O":[60,100],"P":[200,100],"A":[74.5,57.4],"B":[74.5,142.6]},"C":[["O",45]],"L":["PA","PB","OA","OB"],"D":["OP"],"R":[["A","O","P"],["B","O","P"]],"o":{"O":[-12,4]}});
+FIG(["從圓外一點 P 作切線 PA", "P 到圓心 O 的距離 13，半徑 5"],{"P":{"O":[60,100],"P":[200,100],"A":[74.5,57.4]},"C":[["O",45]],"L":["PA","OA"],"D":["OP"],"R":[["A","O","P"]],"o":{"O":[-4,16]}});
+FIG(["圓內接四邊形 ABCD"],{"P":{"O":[100,100],"A":[34.2,76.1],"B":[112.2,31.1],"C":[168.9,112.2],"D":[65.0,160.6]},"C":[["O",70]],"L":["AB","BC","CD","DA"],"h":["O"]});
+FIG(["AB 是直徑，C"],{"P":{"O":[100,100],"A":[30,100],"B":[170,100],"C":[135.0,39.4]},"C":[["O",70]],"L":["AB","AC","BC"],"R":[["C","A","B"]],"o":{"O":[0,16]}});
+FIG(["C、D 在弦 AB 同側"],{"P":{"O":[100,100],"A":[39.4,135.0],"B":[160.6,135.0],"C":[70.4,36.6],"D":[135.0,39.4]},"C":[["O",70]],"L":["AB","CA","CB","DA","DB"],"h":["O"]});
+FIG(["圓心角 ∠AOB = 80°，C 在優弧上", "圓中劣弧 AB 的度數"],{"P":{"O":[100,100],"A":[46.4,145.0],"B":[153.6,145.0],"C":[76.1,34.2]},"C":[["O",70]],"L":["OA","OB","CA","CB"],"o":{"O":[0,-12]}});
+FIG(["半徑 10 的圓中，長 16 的弦", "半徑 13 的圓，弦心距", "弦長 8、弦心距 3", "圓心 O 到弦 AB 作垂線"],{"P":{"O":[100,100],"A":[44.0,142],"B":[156.0,142],"M":[100,142]},"C":[["O",70]],"L":["AB","OA"],"D":["OM"],"R":[["M","O","B"]],"o":{"O":[12,-6],"M":[0,14]}});
+FIG(["半徑 13 的圓中有兩條平行弦"],{"P":{"O":[100,100],"A":[40.0,125],"B":[160.0,125],"C":[75.0,40],"D":[125.0,40],"E":[75.0,160],"F":[125.0,160]},"C":[["O",65]],"L":["AB","CD"],"D":["EF","OC"],"h":["E","F"],"T":[[100,119,"24"],[100,56,"10"],[100,184,"10（同側）"]],"o":{"O":[12,0]}});
+FIG(["梯形 ABCD 中 AD // BC，"],{"P":{"A":[70,30],"D":[130,30],"B":[20,160],"C":[190,160],"O":[101.3,63.9]},"L":["AD","BC","AB","DC","AC","BD"],"o":{"O":[16,2]}});
+FIG(["G 是 △ABC 的重心", "G 為 △ABC 的重心", "△ABC 的中線 AD", "中線 AD 長 9"],{"P":{"A":[90,20],"B":[20,160],"C":[190,160],"D":[105.0,160.0],"G":[100.0,113.3]},"L":["AB","AC","BC","AD"],"o":{"G":[13,0]}});
+FIG(["△ABC 面積 36，G 為重心", "△ABC 面積 48，G 為重心", "△ABC 面積 60，G 為重心"],{"P":{"A":[90,20],"B":[20,160],"C":[190,160],"D":[105.0,160.0],"E":[140.0,90.0],"F":[55.0,90.0],"G":[100.0,113.3]},"L":["AB","AC","BC","AD","BE","CF"],"o":{"G":[14,-2]}});
+FIG(["△ABC 中 ∠A = 60°，I 為內心", "△ABC 中 ∠A = 70°，I 為內心", "△ABC 中 ∠A = 70°，∠B、∠C 的平分線", "△ABC 中 ∠A = 80°，∠B、∠C 的平分線"],{"P":{"A":[80,20],"B":[20,160],"C":[190,160],"I":[92.1,112.4]},"L":["AB","AC","BC","BI","CI"],"o":{"I":[0,-13]}});
+FIG(["銳角 △ABC 中 ∠A = 50°，O 為外心", "銳角 △ABC 中 ∠A = 65°，O 為外心", "O 是 △ABC 的外心"],{"P":{"O":[100,100],"A":[87.8,31.1],"B":[39.4,135.0],"C":[160.6,135.0]},"C":[["O",70]],"L":["AB","BC","CA","OB","OC"],"D":["OA"],"o":{"O":[13,-4]}});
+FIG(["△ABC 中 AB = AC，頂角平分線 AD"],{"P":{"A":[100,20],"B":[30,160],"C":[170,160],"D":[100,160]},"L":["AB","AC","BC","AD"],"R":[["D","C","A"]]});
+FIG(["五角星的五個尖角"],{"P":{"A":[100.0,20.0],"B":[176.1,75.3],"C":[147.0,164.7],"D":[53.0,164.7],"E":[23.9,75.3]},"L":["AC","CE","EB","BD","DA"]});
+FIG(["一支 13 公尺長的梯子"],{"P":{"W":[40,170],"H":[40,10],"G":[214,170],"T":[40,26],"F":[100,170],"S":[40,110],"K":[184,170]},"L":["WH","WG","TF"],"D":["SK"],"R":[["W","G","H"]],"h":["W","H","G","T","F","S","K"],"T":[[82,92,"13"],[70,186,"5"],[24,96,"牆"],[160,190,"滑出後"]]});
+FIG(["菱形兩對角線長", "菱形周長 40，一條對角線"],{"P":{"A":[100,20],"B":[190,100],"C":[100,180],"D":[10,100],"O":[100,100]},"L":["AB","BC","CD","DA"],"D":["AC","BD"],"R":[["O","B","A"]],"o":{"O":[12,14]}});
+FIG(["平行四邊形 ABCD 對角線交於 O", "平行四邊形 ABCD 的對角線交於 O"],{"P":{"A":[60,30],"B":[20,150],"C":[180,150],"D":[220,30],"O":[120,90]},"L":["AB","BC","CD","DA","AC","BD"],"o":{"O":[0,-13]}});
+FIG(["P 在 ∠AOB 的平分線上"],{"P":{"O":[20,170],"A":[210,170],"B":[142.1,24.5],"P":[146.9,110.8],"C":[146.9,170],"E":[101.6,72.8]},"L":["OA","OB","PC","PE"],"D":["OP"],"R":[["C","O","P"],["E","O","P"]],"h":["E"]});
+FIG(["P 在線段 AB 的中垂線上"],{"P":{"A":[30,160],"B":[190,160],"M":[110,160],"P":[110,40],"Q":[110,182]},"L":["AB","PA","PB"],"D":["PQ"],"R":[["M","B","P"]],"h":["M","Q"]});
+FIG(["直角三角形兩股 5、12，內切圓", "直角三角形兩股 6、8，內切圓"],{"P":{"C":[30,160],"A":[30,40],"B":[190,160],"I":[70,120]},"C":[["I",40]],"L":["AC","CB","AB"],"R":[["C","A","B"]],"o":{"I":[10,-8]}});
+FIG(["△ABC 的外角 ∠ACD"],{"P":{"A":[80,30],"B":[20,160],"C":[150,160],"D":[220,160]},"L":["AB","AC","BD"]});
+
 </script>
 <script>
 (function(){
@@ -2190,7 +2235,7 @@ var L="ABCD";
 function home(){
   var done=UNITS.filter(function(u){return best(u.id)!=null}).length;
   var h='<section class="hero"><div><p class="eyebrow">國中教育會考・數學科</p><h1>六冊 28 個單元，一頁一頁複習到會考</h1><p class="lead">每個單元都有重點複習、易錯觀念、會考難題拆解和練習 10 題。標上「難」的單元多了白話講解和口訣。全部讀完，去做一回模擬考，看看哪裡還要補。</p></div>'+
-  '<div class="prog"><div class="muted">已練習單元</div><b>'+done+'</b><span class="muted"> / '+UNITS.length+'</span><div style="margin-top:10px"><a class="btn" href="#mock">開始模擬考</a></div></div></section><p class="muted" style="margin-top:14px">單元順序和調整說明見 <a href="#order">單元順序說明</a>。</p>';
+  '<div class="prog"><div class="muted">已練習單元</div><b>'+done+'</b><span class="muted"> / '+UNITS.length+'</span><div style="margin-top:10px"><a class="btn" href="#mock">開始模擬考</a></div>'+homeCD()+'</div></section><p class="muted" style="margin-top:14px">單元順序和調整說明見 <a href="#order">單元順序說明</a>。</p>';
   GR.forEach(function(g){
     var us=UNITS.filter(function(u){return u.g===g});
     h+='<section class="grade"><div class="grade-h"><h2>'+g+'</h2><small>'+GRN[g]+'・'+us.length+' 個單元</small></div><div class="units">';
@@ -2229,7 +2274,7 @@ function renderTab(u,tab){
     h+=u.err.map(function(e){return '<div class="err"><div class="w"><b>✗ 常見錯誤</b><p>'+fmt(e[0])+'</p></div><div class="r"><b>✓ 正確觀念</b><p>'+fmt(e[1])+'</p></div></div>'}).join("");
   }else if(tab==="hp"){
     h+='<p class="muted">先自己想一想，再按「看拆解」一步一步對照。</p>';
-    h+=u.hp.map(function(p,k){return '<div class="hp"><p class="eyebrow">難題 '+(k+1)+'</p><p class="q">'+fmt(p.q)+'</p><button class="btn ghost reveal" data-k="'+k+'">看拆解</button><div class="sol" hidden><ol>'+p.s.map(function(s){return '<li><span>'+fmt(s)+'</span></li>'}).join("")+'</ol><p class="ans">答案：'+fmt(p.a)+'</p><p class="tip">解題關鍵：'+fmt(p.tip)+'</p></div></div>'}).join("");
+    h+=u.hp.map(function(p,k){return '<div class="hp"><p class="eyebrow">難題 '+(k+1)+'</p><p class="q">'+fmt(p.q)+'</p>'+figOf(p.q)+'<button class="btn ghost reveal" data-k="'+k+'">看拆解</button><div class="sol" hidden><ol>'+p.s.map(function(s){return '<li><span>'+fmt(s)+'</span></li>'}).join("")+'</ol><p class="ans">答案：'+fmt(p.a)+'</p><p class="tip">解題關鍵：'+fmt(p.tip)+'</p></div></div>'}).join("");
   }else{
     h+='<div id="qzbox" class="stack"></div>';
   }
@@ -2256,7 +2301,7 @@ function practice(u){
       answered++;if(ok)right++;
       document.getElementById("sbn").textContent=right+" / 10";
       if(answered===10){
-        var b0=best(u.id);if(b0==null||right>b0)LS.set("best:"+u.id,right);
+        var b0=best(u.id);if(b0==null||right>b0)LS.set("best:"+u.id,right);LS.set("lastPractice:"+u.id,today());
         document.getElementById("sbt").textContent=right>=9?"很穩！可以挑戰下一單元。":right>=7?"不錯，回頭看看錯的題目和易錯觀念。":"建議回到重點複習和易錯觀念再讀一次，再重做一遍。";
       }else document.getElementById("sbt").textContent="已作答 "+answered+" 題";
     }});
@@ -2265,8 +2310,45 @@ function practice(u){
   document.getElementById("redo").onclick=function(){practice(u);box.scrollIntoView({block:"start"})};
 }
 function qHTML(q,k,p,tag){
-  return '<div class="qcard" data-q="'+p+k+'" id="'+p+'q'+k+'"><div class="qn">第 '+(k+1)+' 題'+(tag?'・'+tag:'')+'</div><p class="qt">'+fmt(q.q)+'</p><div class="opts">'+q.opts.map(function(o,j){return '<button class="opt" data-i="'+j+'"><span class="bub">'+L[j]+'</span><span>'+fmt(o)+'</span></button>'}).join("")+'</div></div>';
+  return '<div class="qcard" data-q="'+p+k+'" id="'+p+'q'+k+'"><div class="qn">第 '+(k+1)+' 題'+(tag?'・'+tag:'')+'</div><p class="qt">'+fmt(q.q)+'</p>'+figOf(q.q)+'<div class="opts">'+q.opts.map(function(o,j){return '<button class="opt" data-i="'+j+'"><span class="bub">'+L[j]+'</span><span>'+fmt(o)+'</span></button>'}).join("")+'</div></div>';
 }
+
+
+/* ---------- figures ---------- */
+var figCache={};
+function figFor(t){
+  if(typeof FIGS==="undefined")return null;
+  if(t in figCache)return figCache[t];
+  var f=null;for(var i=0;i<FIGS.length&&!f;i++){FIGS[i][0].forEach(function(m){if(!f&&String(t).indexOf(m)===0)f=FIGS[i][1]})}
+  return figCache[t]=f;
+}
+function figSVG(f){
+  var P=f.P,names=Object.keys(P),hid={};(f.h||[]).forEach(function(n){hid[n]=1});
+  var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  function ext(x,y){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}
+  names.forEach(function(n){ext(P[n][0],P[n][1])});
+  (f.C||[]).forEach(function(c){var o=P[c[0]];ext(o[0]-c[1],o[1]-c[1]);ext(o[0]+c[1],o[1]+c[1])});
+  (f.T||[]).forEach(function(t){ext(t[0],t[1])});
+  var pad=20;x0-=pad;y0-=pad;x1+=pad;y1+=pad;var sc=Math.max(1,Math.max(x1-x0,y1-y0)/230);
+  var cx=0,cy=0,vis=names.filter(function(n){return !hid[n]});
+  vis.forEach(function(n){cx+=P[n][0];cy+=P[n][1]});cx/=vis.length||1;cy/=vis.length||1;
+  function seg(s,d){var a=P[s.charAt(0)],b=P[s.charAt(1)];return '<line x1="'+a[0]+'" y1="'+a[1]+'" x2="'+b[0]+'" y2="'+b[1]+'"'+(d?' stroke-dasharray="5 4" stroke="var(--muted)"':'')+'/>'}
+  var g='<g fill="none" stroke="var(--ink)" stroke-width="'+(1.8*sc)+'" stroke-linecap="round">';
+  (f.C||[]).forEach(function(c){var o=P[c[0]];g+='<circle cx="'+o[0]+'" cy="'+o[1]+'" r="'+c[1]+'"/>'});
+  (f.L||[]).forEach(function(s){g+=seg(s)});
+  (f.D||[]).forEach(function(s){g+=seg(s,1)});
+  (f.R||[]).forEach(function(r){var v=P[r[0]],a=P[r[1]],b=P[r[2]],k=9*sc;
+    function u(p){var dx=p[0]-v[0],dy=p[1]-v[1],l=Math.sqrt(dx*dx+dy*dy)||1;return [dx/l*k,dy/l*k]}
+    var ua=u(a),ub=u(b);g+='<polyline stroke-width="'+(1.2*sc)+'" points="'+(v[0]+ua[0])+','+(v[1]+ua[1])+' '+(v[0]+ua[0]+ub[0])+','+(v[1]+ua[1]+ub[1])+' '+(v[0]+ub[0])+','+(v[1]+ub[1])+'"/>'});
+  g+='</g><g fill="var(--ink)" font-size="'+(14*sc)+'" style="font-family:var(--f-mono)" text-anchor="middle">';
+  vis.forEach(function(n){var p=P[n],o=f.o&&f.o[n];
+    if(!o){var dx=p[0]-cx,dy=p[1]-cy,l=Math.sqrt(dx*dx+dy*dy);o=l<1?[0,-12*sc]:[dx/l*13*sc,dy/l*13*sc]}else o=[o[0]*sc,o[1]*sc];
+    g+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+(2.2*sc)+'" stroke="none"/><text x="'+(p[0]+o[0])+'" y="'+(p[1]+o[1]+5)+'" font-style="italic">'+n+'</text>'});
+  (f.T||[]).forEach(function(t){g+='<text x="'+t[0]+'" y="'+t[1]+'" font-size="'+(12*sc)+'" fill="var(--muted)" font-family="inherit">'+t[2]+'</text>'});
+  g+='</g>';
+  return '<figure class="fig"><svg viewBox="'+x0+' '+y0+' '+(x1-x0)+' '+(y1-y0)+'" role="img" aria-label="題目附圖">'+g+'</svg><figcaption>示意圖，未依比例</figcaption></figure>';
+}
+function figOf(t){var f=figFor(t);return f?figSVG(f):""}
 
 /* ---------- mock ---------- */
 var mock=null,timerId=null,sel={"七":1,"八":1,"九":1};
@@ -2344,7 +2426,7 @@ function finish(){
   qs.forEach(function(q,k){var a=mock.ans[k];q.yours=a;q.ok=a===q.c;if(q.ok)right++;if(a==null)blank++;var p=per[q.u]=per[q.u]||{r:0,t:0};p.t++;if(q.ok)p.r++});
   var score=Math.round(right/qs.length*100);
   var mixT=qs.filter(function(q){return q.mix}),mixR=mixT.filter(function(q){return q.ok}).length,basT=qs.length-mixT.length,basR=right-mixR;
-  var d=new Date();LS.set("mocklast",{score:score,right:right,total:qs.length,date:(d.getMonth()+1)+"/"+d.getDate()});
+  LS.set("lastMock",today());var d=new Date();LS.set("mocklast",{score:score,right:right,total:qs.length,date:(d.getMonth()+1)+"/"+d.getDate()});
   var hist=LS.get("mockhist",[]);hist.push({d:(d.getMonth()+1)+"/"+d.getDate(),score:score,label:mock.label});LS.set("mockhist",hist.slice(-50));
   var added=0;qs.forEach(function(q){var st=record(q.key,q.u,q.ok);if(st==="added")added++});
   var R=54,C=2*Math.PI*R;
@@ -2356,7 +2438,7 @@ function finish(){
     rows.map(function(x){var p=x.r/x.t;return '<tr><td><a href="#'+x.u.id+'">'+x.u.g+'・'+x.u.t+'</a></td><td class="num">'+x.r+' / '+x.t+'</td><td><div class="bar'+(p<0.5?" low":"")+'"><i style="width:'+Math.round(p*100)+'%"></i></div></td></tr>'}).join("")+'</tbody></table></div></div>';
   var wrong=qs.map(function(q,k){q.k=k;return q}).filter(function(q){return !q.ok});
   h+='<div><h2>錯題解析</h2><p class="muted">'+(wrong.length?'共 '+wrong.length+' 題，看完解析再回到對應單元練習。':'全部答對，沒有錯題！')+(added?'這次有 '+added+' 題新收進<a href="#wrongbook">錯題本</a>。':'')+'</p></div>';
-  h+=wrong.map(function(q){return '<div class="qcard wrongq"><div class="qn">第 '+(q.k+1)+' 題・<a href="#'+q.u+'">'+byId[q.u].t+'</a></div><p class="qt">'+fmt(q.q)+'</p><p class="yours">你的答案：'+(q.yours==null?'未作答':fmt(q.yours))+'</p><p class="corr">正確答案：'+fmt(q.c)+'</p><div class="exp no"><b>解析</b>'+fmt(q.e)+'</div></div>'}).join("");
+  h+=wrong.map(function(q){return '<div class="qcard wrongq"><div class="qn">第 '+(q.k+1)+' 題・<a href="#'+q.u+'">'+byId[q.u].t+'</a></div><p class="qt">'+fmt(q.q)+'</p>'+figOf(q.q)+'<p class="yours">你的答案：'+(q.yours==null?'未作答':fmt(q.yours))+'</p><p class="corr">正確答案：'+fmt(q.c)+'</p><div class="exp no"><b>解析</b>'+fmt(q.e)+'</div></div>'}).join("");
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="again">再考一回</button><a class="btn ghost" href="#home">回單元列表</a></div></section>';
   app.innerHTML=h;window.scrollTo(0,0);
   document.getElementById("again").onclick=mockSetup;
@@ -2496,14 +2578,90 @@ function lineChart(hist){
   var dots=hist.map(function(h,i){var lastp=i===n-1;return '<circle cx="'+x(i)+'" cy="'+y(h.score)+'" r="'+(lastp?5:3.5)+'" fill="'+(lastp?"var(--teal)":"var(--sheet)")+'" stroke="var(--teal)" stroke-width="2"><title>'+h.d+'：'+h.score+' 分（'+h.label+'）</title></circle>'+(lastp?'<text x="'+x(i)+'" y="'+(y(h.score)-10)+'" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">'+h.score+'</text>':'')+'<text x="'+x(i)+'" y="'+(H-10)+'" text-anchor="middle" font-size="10" fill="var(--muted)">'+h.d+'</text>'}).join("");
   return '<div class="tbl"><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;min-width:320px;height:auto;display:block;margin-top:8px" role="img" aria-label="模擬考分數折線圖">'+g+area+(n>1?'<polyline points="'+pts+'" fill="none" stroke="var(--teal)" stroke-width="2.5"/>':'')+dots+'</svg></div><p class="muted" style="font-size:14px">顯示最近 '+n+' 回。</p>';
 }
+
+/* ---------- sprint ---------- */
+function pad2(n){return (n<10?"0":"")+n}
+function ymd(d){return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate())}
+function today(){return ymd(new Date())}
+function addDays(s,n){var d=new Date(s+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d)}
+function dayDiff(a,b){return Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/864e5)}
+function daysLeft(){var e=LS.get("exam",null);return e?dayDiff(today(),e):null}
+function phaseOf(D){return D<=3?["考前收心","最後幾天不要硬拚新題，看公式、翻錯題本，維持手感就好。"]:D<=14?["衝刺期","每天少量單元＋模擬考，重點放在錯題和弱點。"]:D<=60?["加強期","每天 2～3 個單元，固定做模擬考，把弱單元補起來。"]:["打底期","每天一個單元慢慢讀，把六冊完整走過一輪。"]}
+function perDay(D){if(D<=3)return 0;var k=Math.min(4,Math.max(1,Math.ceil(56/D)));return D<=14?Math.min(k,2):k}
+function mockGap(D){return D<=3?99:D<=14?2:D<=60?3:7}
+function unitRank(){
+  var st=LS.get("stat",{});
+  function b(u){var s=st[u.id];if(!s||s.t<3)return 1;var a=s.r/s.t;return a<.6?0:a<.8?2:3}
+  return UNITS.slice().sort(function(x,y){
+    var bx=b(x),by=b(y);if(bx!==by)return bx-by;
+    if(bx===0||bx===2){var sx=st[x.id],sy=st[y.id];return sx.r/sx.t-sy.r/sy.t||x.n-y.n}
+    return x.n-y.n});
+}
+function sprintPlan(){
+  var D=daysLeft(),t=today(),day=LS.get("sprintDay",null);
+  if(day&&day.date===t&&day.exam===LS.get("exam",""))return day;
+  var k=perDay(D),pass=LS.get("sprintPass",[]),rank=unitRank().map(function(u){return u.id});
+  var left=rank.filter(function(id){return pass.indexOf(id)<0});
+  if(left.length<k){pass=[];left=rank}
+  var units=left.slice(0,k);pass=pass.concat(units);LS.set("sprintPass",pass);
+  var lm=LS.get("lastMock",null),gap=mockGap(D);
+  var mk=D>3&&(!lm||dayDiff(lm,t)>=gap||D<=1);
+  day={date:t,exam:LS.get("exam",""),units:units,mock:mk};LS.set("sprintDay",day);return day;
+}
+function sprintTasks(day){
+  var t=today(),wb=Object.keys(LS.get("wb",{})).length,D=daysLeft(),list=[];
+  day.units.forEach(function(id){var u=byId[id];list.push({k:"u:"+id,t:"練習 10 題："+u.g+"・"+u.t,d:"先看重點複習和易錯觀念，再做 10 題。",href:"#"+id,auto:LS.get("lastPractice:"+id,"")===t,n:10})});
+  if(day.mock)list.push({k:"mock",t:"考一回模擬考（25 題）",d:"建議計時 60 分鐘，考完看錯題解析。",href:"#mock",auto:LS.get("lastMock","")===t,n:25});
+  if(wb)list.push({k:"wb",t:"錯題本重做 "+Math.min(10,wb)+" 題",d:"錯題本目前有 "+wb+" 題，挑最前面的先做。",href:"#wrongbook",auto:false,n:Math.min(10,wb)});
+  if(D<=3)list.push({k:"fm",t:"把公式頁從頭看一遍",d:"看到不熟的公式，點回單元再讀一次。",href:"#formulas",auto:false,n:0});
+  return list;
+}
+function homeCD(){
+  var D=daysLeft();
+  if(D==null)return '<p class="muted" style="margin-top:10px;font-size:14px"><a href="#sprint">設定會考日期</a>，每天幫你排好要讀的單元。</p>';
+  if(D<0)return '<p class="muted" style="margin-top:10px;font-size:14px">會考日期已過，<a href="#sprint">重新設定</a>。</p>';
+  var tasks=sprintTasks(sprintPlan()),chk=LS.get("sprintChk:"+today(),{}),dn=tasks.filter(function(x){return x.auto||chk[x.k]}).length;
+  return '<p style="margin-top:10px;font-size:14px">距離會考 <b>'+D+'</b> 天・<a href="#sprint">今日任務 '+dn+' / '+tasks.length+'</a></p>';
+}
+function sprint(){
+  var e=LS.get("exam",""),D=daysLeft();
+  var h='<section class="stack"><div><p class="eyebrow">考前衝刺</p><h1>倒數到會考，每天照表操課</h1><p class="muted" style="margin-top:8px">輸入會考日期，系統會依剩下的天數和你的答對率排每天的單元、題數和模擬考。答對率低的單元先排，還沒練過的依課本順序補上。</p></div>';
+  h+='<div class="sheet"><h3>會考日期</h3><div class="sprint-in" style="margin-top:8px"><input type="date" id="exd" value="'+e+'" min="'+today()+'" aria-label="會考日期"><button class="btn" id="exs">儲存</button>'+(e?'<button class="btn ghost" id="exc">清除</button>':'')+'</div><p class="muted" id="exn" style="margin-top:8px;font-size:14px">請以心測中心公告的考試日期為準（通常在五月中旬），填第一天就好。</p></div>';
+  if(D==null){app.innerHTML=h+'</section>';bindEx();return}
+  if(D<0){app.innerHTML=h+'<div class="sheet"><p>這個日期已經過了，重新設定一個新的日期吧。</p></div></section>';bindEx();return}
+  var ph=phaseOf(D),day=sprintPlan(),tasks=sprintTasks(day),chk=LS.get("sprintChk:"+today(),{});
+  var total=tasks.reduce(function(a,x){return a+x.n},0),dn=tasks.filter(function(x){return x.auto||chk[x.k]}).length;
+  h+='<div class="sheet"><div class="cd">'+(D===0?'<b>今天</b><span>就是會考，深呼吸，你準備好了！</span>':'<span>距離會考還有</span><b>'+D+'</b><span>天</span>')+'</div><p style="margin-top:10px"><span class="phase">'+ph[0]+'</span> '+ph[1]+'</p></div>';
+  h+='<div><h2>今日任務</h2><p class="muted" style="margin:4px 0 10px">'+today().slice(5).replace("-","/")+'・約 '+total+' 題・完成 '+dn+' / '+tasks.length+'。做完練習或模擬考會自動打勾，也可以自己勾。</p><ul class="tasks">'+
+    tasks.map(function(x){var ok=x.auto||chk[x.k];return '<li class="'+(ok?"done":"")+'"><input type="checkbox" data-k="'+x.k+'"'+(ok?" checked":"")+(x.auto?" disabled":"")+' aria-label="'+x.t+'"><div><div class="tt">'+x.t+'</div><div class="muted" style="font-size:14px">'+x.d+'</div></div><a class="btn ghost go" href="'+x.href+'">去做</a></li>'}).join("")+'</ul></div>';
+  // 7-day preview
+  var pass=LS.get("sprintPass",[]),rank=unitRank().map(function(u){return u.id}),left=rank.filter(function(id){return pass.indexOf(id)<0});
+  var lm=LS.get("lastMock","")===today()||day.mock?today():LS.get("lastMock",null),wk='';
+  for(var i=1;i<=Math.min(7,D);i++){
+    var dd=addDays(today(),i),Di=D-i,k=perDay(Di),us=[];
+    for(var j=0;j<k;j++){if(!left.length)left=rank.slice();us.push(left.shift())}
+    var mk=Di>3&&(!lm||dayDiff(lm,dd)>=mockGap(Di));if(mk)lm=dd;
+    wk+='<div><b>'+dd.slice(5).replace("-","/")+(Di===0?"・會考":"")+'</b>'+(Di===0?'加油！':(us.length?us.map(function(id){return byId[id].t}).join("、"):'看公式、翻錯題本')+(mk?'<br><span style="color:var(--teal)">＋模擬考</span>':''))+'</div>';
+  }
+  if(wk)h+='<div><h2>接下來 '+Math.min(7,D)+' 天</h2><p class="muted" style="margin:4px 0 10px">預排，會依你每天的答對率重新調整。</p><div class="week">'+wk+'</div></div>';
+  var covered=pass.length;
+  h+='<p class="muted" style="font-size:14px">這一輪已排 '+covered+' / '+UNITS.length+' 個單元，排完會從最弱的單元開始下一輪。</p></section>';
+  app.innerHTML=h;bindEx();
+  app.querySelectorAll(".tasks input").forEach(function(c){c.onchange=function(){var m=LS.get("sprintChk:"+today(),{});m[c.dataset.k]=c.checked;LS.set("sprintChk:"+today(),m);sprint()}});
+}
+function bindEx(){
+  document.getElementById("exs").onclick=function(){var v=document.getElementById("exd").value;if(!v){document.getElementById("exn").textContent="請先選一個日期。";return}if(dayDiff(today(),v)<0){document.getElementById("exn").textContent="日期不能早於今天。";return}LS.set("exam",v);LS.set("sprintDay",null);LS.set("sprintPass",[]);sprint()};
+  var c=document.getElementById("exc");if(c)c.onclick=function(){LS.set("exam",null);LS.set("sprintDay",null);sprint()};
+}
 function route(){
   var hsh=(location.hash||"#home").slice(1);
-  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":hsh==="formulas"?"formulas":hsh==="wrongbook"?"wrongbook":hsh==="progress"?"progress":"home"))});
+  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":hsh==="formulas"?"formulas":hsh==="wrongbook"?"wrongbook":hsh==="progress"?"progress":hsh==="sprint"?"sprint":"home"))});
   if(hsh==="mock"){if(mock&&!mock.done&&document.getElementById("smap"))return;if(mock&&!mock.done){renderMock();return}mockSetup()}
   else if(hsh==="order")order();
   else if(hsh==="formulas")formulas();
   else if(hsh==="wrongbook")wrongbook();
   else if(hsh==="progress")progress();
+  else if(hsh==="sprint")sprint();
   else if(byId[hsh])unit(byId[hsh]);
   else home();
   if(hsh!=="mock")window.scrollTo(0,0);
