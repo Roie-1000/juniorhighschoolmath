@@ -151,7 +151,20 @@ td.num{font-family:var(--f-mono);white-space:nowrap;font-variant-numeric:tabular
 .order li{margin-bottom:8px}
 .order ul{padding-left:1.3em;margin:8px 0 0}
 .chg{font-size:12px;padding:1px 6px;border-radius:4px;background:var(--hl);margin-left:6px;white-space:nowrap}
+/* formulas */
+.fm{display:grid;background:var(--sheet);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.fm-row{display:grid;grid-template-columns:10em 1fr;gap:4px 16px;padding:12px 18px;border-top:1px solid var(--line)}
+.fm-row:first-child{border-top:0}
+.fm-row .nm{color:var(--muted);font-size:14px;padding-top:3px}
+.fm-row .eq{font-family:var(--f-display);font-weight:700;font-size:17px;min-width:0;overflow-wrap:anywhere}
+.fm-row .nt{grid-column:2;font-size:14px;color:var(--muted)}
+.fm-unit{display:flex;flex-direction:column;gap:8px;scroll-margin-top:120px}
+.fm-unit h3 a{text-decoration:none;color:var(--ink)}
+.fm-unit h3 small{font-family:var(--f-mono);color:var(--teal);font-size:13px;margin-right:8px}
+.fm-filter{display:flex;gap:8px;flex-wrap:wrap}
 @media (max-width:640px){
+  .fm-row{grid-template-columns:1fr}
+  .fm-row .nt{grid-column:1}
   .hero,.res-top{grid-template-columns:1fr}
   .prog{text-align:left}
   .pt{grid-template-columns:1fr;gap:4px}
@@ -170,6 +183,7 @@ td.num{font-family:var(--f-mono);white-space:nowrap;font-variant-numeric:tabular
   <a class="brand" href="#home">會考數學<span>總複習</span></a>
   <nav class="main" aria-label="主選單">
     <a href="#home" data-nav="home">單元</a>
+    <a href="#formulas" data-nav="formulas">公式</a>
     <a href="#mock" data-nav="mock">模擬考</a>
     <a href="#order" data-nav="order">順序說明</a>
   </nav>
@@ -186,7 +200,8 @@ var GR=["七上","七下","八上","八下","九上","九下"];
 var GRN={"七上":"七年級上學期","七下":"七年級下學期","八上":"八年級上學期","八下":"八年級下學期","九上":"九年級上學期","九下":"九年級下學期"};
 var byId={};UNITS.forEach(function(u,i){u.n=i+1;byId[u.id]=u});
 var app=document.getElementById("app");
-function fmt(s){return String(s).replace(/\^\(([^)]+)\)/g,"<sup>$1</sup>").replace(/\^(\d+|[a-zA-Z])/g,"<sup>$1</sup>").replace(/_(\d+|[a-zA-Z])\b/g,"<sub>$1</sub>")}
+function fmt(s){return String(s).replace(/\^\(([^)]+)\)/g,"<sup>$1</sup>").replace(/\^(\d+|[a-zA-Z])/g,"<sup>$1</sup>").replace(/_\(([^)]+)\)/g,"<sub>$1</sub>").replace(/_(\d+|[a-zA-Z])\b/g,"<sub>$1</sub>")}
+function fmHTML(list){return '<div class="fm">'+list.map(function(f){return '<div class="fm-row"><div class="nm">'+fmt(f[0])+'</div><div class="eq">'+fmt(f[1])+'</div>'+(f[2]?'<div class="nt">'+fmt(f[2])+'</div>':"")+'</div>'}).join("")+'</div>'}
 function esc(s){return String(s)}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
 var LS={get:function(k,d){try{var v=localStorage.getItem("hk-math:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set:function(k,v){try{localStorage.setItem("hk-math:"+k,JSON.stringify(v))}catch(e){}}};
@@ -216,7 +231,7 @@ function unit(u){
   var tab=curTab[u.id]||"pts";
   var i=UNITS.indexOf(u),prev=UNITS[i-1],next=UNITS[i+1];
   var h='<div class="uhead"><div class="crumb"><a href="#home">單元</a> › '+u.g+' › 第 '+u.n+' 單元</div><h1>'+u.t+'</h1><p class="muted">'+fmt(u.sum)+'</p>'+(u.hard?'<p><span class="tag hard">難度較高・附白話講解</span></p>':'')+'</div>';
-  h+='<div class="tabs" role="tablist">'+[["pts","重點複習"],["err","易錯觀念"],["hp","會考難題拆解"],["qz","練習 10 題"]].map(function(t){return '<button role="tab" data-tab="'+t[0]+'" class="'+(tab===t[0]?"on":"")+'" aria-selected="'+(tab===t[0])+'">'+t[1]+'</button>'}).join("")+'</div>';
+  h+='<div class="tabs" role="tablist">'+[["pts","重點複習"],["fm","重要公式"],["err","易錯觀念"],["hp","會考難題拆解"],["qz","練習 10 題"]].map(function(t){return '<button role="tab" data-tab="'+t[0]+'" class="'+(tab===t[0]?"on":"")+'" aria-selected="'+(tab===t[0])+'">'+t[1]+'</button>'}).join("")+'</div>';
   h+='<div id="tabbody"></div>';
   h+='<div class="pager">'+(prev?'<a href="#'+prev.id+'">← '+prev.t+'</a>':'<span></span>')+(next?'<a href="#'+next.id+'" style="text-align:right">'+next.t+' →</a>':'<a href="#mock" style="text-align:right">去做模擬考 →</a>')+'</div>';
   app.innerHTML=h;
@@ -229,6 +244,8 @@ function renderTab(u,tab){
     if(u.memo)h+='<div class="memo-box"><span class="eyebrow">口訣</span><span class="memo">'+fmt(u.memo)+'</span></div>';
     if(u.story)h+='<div class="story"><h3>白話講解：用最簡單的方式想</h3>'+u.story.map(function(p){return '<p>'+fmt(p)+'</p>'}).join("")+'</div>';
     h+='<div class="pts">'+u.pts.map(function(p){return '<div class="pt"><h3>'+fmt(p[0])+'</h3><div>'+fmt(p[1])+'</div></div>'}).join("")+'</div>';
+  }else if(tab==="fm"){
+    h+='<p class="muted">這個單元考前一定要會的公式。全部單元的公式都整理在上方「公式」頁。</p>'+fmHTML(FORMULAS[u.id]||[]);
   }else if(tab==="err"){
     h+='<p class="muted">左邊是常見的錯誤想法，右邊是正確觀念。考前把左邊每一條都讀一次，避免掉進同樣的陷阱。</p>';
     h+=u.err.map(function(e){return '<div class="err"><div class="w"><b>✗ 常見錯誤</b><p>'+fmt(e[0])+'</p></div><div class="r"><b>✓ 正確觀念</b><p>'+fmt(e[1])+'</p></div></div>'}).join("");
@@ -388,11 +405,25 @@ function order(){
 }
 
 /* ---------- router ---------- */
+var fmGrade="all";
+function formulas(){
+  var gs=[["all","全部"]].concat(GR.map(function(g){return [g,g]}));
+  var h='<section class="stack"><div><p class="eyebrow">公式總整理</p><h1>28 個單元的重要公式</h1><p class="muted" style="margin-top:8px">考前快速翻一遍。點單元名稱可以回到該單元複習。</p></div>';
+  h+='<div class="fm-filter">'+gs.map(function(g){return '<button class="chip'+(fmGrade===g[0]?" on":"")+'" data-g="'+g[0]+'">'+g[1]+'</button>'}).join("")+'</div>';
+  UNITS.forEach(function(u){
+    if(fmGrade!=="all"&&u.g!==fmGrade)return;
+    h+='<div class="fm-unit"><h3><small>'+u.g+'・'+String(u.n).padStart(2,"0")+'</small><a href="#'+u.id+'">'+u.t+'</a></h3>'+fmHTML(FORMULAS[u.id]||[])+'</div>';
+  });
+  h+='</section>';
+  app.innerHTML=h;
+  app.querySelectorAll(".fm-filter .chip").forEach(function(c){c.onclick=function(){fmGrade=c.dataset.g;formulas()}});
+}
 function route(){
   var hsh=(location.hash||"#home").slice(1);
-  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":"home"))});
+  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":hsh==="formulas"?"formulas":"home"))});
   if(hsh==="mock"){if(mock&&!mock.done&&document.getElementById("smap"))return;if(mock&&!mock.done){renderMock();return}mockSetup()}
   else if(hsh==="order")order();
+  else if(hsh==="formulas")formulas();
   else if(byId[hsh])unit(byId[hsh]);
   else home();
   if(hsh!=="mock")window.scrollTo(0,0);
