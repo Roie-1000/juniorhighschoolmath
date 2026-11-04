@@ -127,6 +127,9 @@ p{margin:0}
 .week div{border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--sheet);font-size:14px}
 .week div b{display:block;margin-bottom:4px}
 details.wk{margin-bottom:8px}
+.jump{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--hh,53px));z-index:3;background:var(--paper);padding:8px 0}
+#chat,#tposts,#tboard,#tstu{scroll-margin-top:calc(var(--hh,53px) + 76px)}
+.jump .chip{white-space:nowrap;flex:none;padding:4px 12px;font-size:14px}
 .chatlist{max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:10px;background:var(--paper);border:1px solid var(--line);border-radius:6px}
 .cm{max-width:85%;align-self:flex-start}
 .cm.mine{align-self:flex-end;text-align:right}
@@ -2717,14 +2720,16 @@ function teacherCloud(h){
     var cref=db().collection("classes").doc(TC.sel);
     Promise.all([db().collection("users").where("cls","==",TC.sel).where("tch","==",FB.user.uid).get(),cref.collection("posts").orderBy("at","desc").limit(30).get().catch(function(){return {docs:[]}}),cref.collection("board").get().catch(function(){return {docs:[]}})]).then(function(r){TC.list=r[0].docs.map(cloudToO).sort(function(a,b){return a.n.localeCompare(b.n,"zh-Hant",{numeric:true})});TC.posts=r[1].docs.map(postOf);TC.board=r[2].docs.map(function(d){var x=d.data();x.uid=d.id;return x});tRe()}).catch(function(e){TC.list=[];TC.msg="讀取學生失敗："+e.message;tRe()});return}
   var cc=curClass(),kk=cc?Object.keys(cc.kicked||{}):[];
-  if(TC.sel)h+='<div class="sheet"><h2>班級公告</h2><p class="muted" style="margin:4px 0 10px">發布後，班上學生會在首頁和「班級」頁看到。</p><textarea class="code" id="pin" rows="3" maxlength="500" placeholder="例如：週五小考範圍是相似形，記得做完練習 10 題。" style="font-family:inherit;font-size:15px"></textarea><div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap"><button class="btn" id="padd">發布公告</button><span class="muted" id="pmsg" style="font-size:14px"></span></div>'+postsHTML(TC.posts||[],true)+'</div>'+
-    '<div class="sheet"><h2>班級排行榜</h2><p class="muted" style="margin:4px 0 10px">學生也看得到這個排行榜（只限同班）。</p>'+boardHTML(TC.board||[],null)+'</div>'+chatShell("老師可以刪除任何一則訊息。");
-  if(TC.sel)h+=(TC.list.length?classHTML(TC.list):'<div class="sheet"><p>這個班級還沒有學生加入。</p></div>')+
+  if(TC.sel)h+='<div class="jump" role="navigation" aria-label="跳到">'+[["chat","💬 聊天區"],["tposts","📢 公告"],["tboard","🏆 排行榜"],["tstu","📋 學生成績"]].map(function(x){return '<button class="chip" data-jump="'+x[0]+'">'+x[1]+'</button>'}).join("")+'</div>';
+  if(TC.sel)h+='<div class="sheet" id="tposts"><h2>班級公告</h2><p class="muted" style="margin:4px 0 10px">發布後，班上學生會在首頁和「班級」頁看到。</p><textarea class="code" id="pin" rows="3" maxlength="500" placeholder="例如：週五小考範圍是相似形，記得做完練習 10 題。" style="font-family:inherit;font-size:15px"></textarea><div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap"><button class="btn" id="padd">發布公告</button><span class="muted" id="pmsg" style="font-size:14px"></span></div>'+postsHTML(TC.posts||[],true)+'</div>'+
+    '<div class="sheet" id="tboard"><h2>班級排行榜</h2><p class="muted" style="margin:4px 0 10px">學生也看得到這個排行榜（只限同班）。</p>'+boardHTML(TC.board||[],null)+'</div>'+chatShell("老師可以刪除任何一則訊息。");
+  if(TC.sel)h+='<div id="tstu"></div>'+(TC.list.length?classHTML(TC.list):'<div class="sheet"><p>這個班級還沒有學生加入。</p></div>')+
     (kk.length?'<div class="sheet"><h2>已踢出的學生</h2><p class="muted" style="margin:4px 0 10px">這些學生不能再用班級代碼加入，按「允許重新加入」後才可以。</p><ul class="tasks">'+kk.map(function(uid){return '<li><div class="tt">'+escH(cc.kicked[uid])+'</div><button class="btn ghost go" data-unk="'+uid+'">允許重新加入</button></li>'}).join("")+'</ul></div>':'')+
     '<div><button class="btn ghost" id="crf">重新整理</button></div>';
   app.innerHTML=h+'</section>';bindTC();bindClass();
   bindBoard(function(){teacher()});
   if(TC.sel)startChat(TC.sel,true);
+  app.querySelectorAll("[data-jump]").forEach(function(b){b.onclick=function(){var t=document.getElementById(b.dataset.jump);if(t)t.scrollIntoView({behavior:"smooth",block:"start"})}});
   var pa=document.getElementById("padd");if(pa)pa.onclick=function(){
     var t=document.getElementById("pin").value.trim(),m=document.getElementById("pmsg");if(!t){m.textContent="請先輸入公告內容。";return}
     pa.disabled=true;db().collection("classes").doc(TC.sel).collection("posts").add({text:t,at:firebase.firestore.FieldValue.serverTimestamp(),by:FB.user.displayName||""})
