@@ -121,6 +121,7 @@ p{margin:0}
 details.wk{margin-bottom:8px}
 .posts{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
 .posts li{border-left:3px solid var(--teal);background:var(--paper);padding:10px 12px;border-radius:0 6px 6px 0}
+.posts .pmx button{font-size:13px}
 .posts .pmx{display:flex;gap:12px;font-size:13px;color:var(--muted);margin-top:4px}
 .annc{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:8px;background:var(--sheet);display:flex;flex-direction:column;gap:4px}
 .board{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
@@ -727,6 +728,15 @@ function teacherCloud(h){
     pa.disabled=true;db().collection("classes").doc(TC.sel).collection("posts").add({text:t,at:firebase.firestore.FieldValue.serverTimestamp(),by:FB.user.displayName||""})
       .then(function(){TC.list=null;TC.msg="公告已發布。";tRe()}).catch(function(e){pa.disabled=false;m.textContent="發布失敗："+e.message+"（請確認 Firestore 規則已更新）"});
   };
+  app.querySelectorAll("[data-pedit]").forEach(function(b){b.onclick=function(){
+    var id=b.dataset.pedit,li=b.closest("li"),post=null;(TC.posts||[]).forEach(function(x){if(x.id===id)post=x});if(!post)return;
+    li.innerHTML='<textarea class="code" rows="3" maxlength="500" style="font-family:inherit;font-size:15px;margin-top:0" aria-label="編輯公告"></textarea><div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap"><button class="btn" data-psave>儲存</button><button class="btn ghost" data-pcancel>取消</button><span class="muted" style="font-size:14px" data-pm></span></div>';
+    var ta=li.querySelector("textarea");ta.value=post.text;ta.focus();
+    li.querySelector("[data-pcancel]").onclick=function(){tRe()};
+    li.querySelector("[data-psave]").onclick=function(){var t=ta.value.trim(),sv=this;if(!t){li.querySelector("[data-pm]").textContent="內容不能空白，要刪除請按「刪除」。";return}
+      sv.disabled=true;db().collection("classes").doc(TC.sel).collection("posts").doc(id).update({text:t,edited:firebase.firestore.FieldValue.serverTimestamp()})
+        .then(function(){post.text=t;post.ed=true;anncData=null;tRe()}).catch(function(e){sv.disabled=false;li.querySelector("[data-pm]").textContent="儲存失敗："+e.message+"（請確認 Firestore 規則已更新）"})};
+  }});
   app.querySelectorAll("[data-pdel]").forEach(function(b){var arm=false;b.onclick=function(){if(!arm){arm=true;b.textContent="確定刪除";return}b.disabled=true;
     db().collection("classes").doc(TC.sel).collection("posts").doc(b.dataset.pdel).delete().then(function(){TC.posts=TC.posts.filter(function(x){return x.id!==b.dataset.pdel});tRe()}).catch(function(e){b.disabled=false;b.textContent="刪除失敗"})}});
   var kb=document.getElementById("tkick");if(kb){var armK=false;kb.onclick=function(){
@@ -864,11 +874,11 @@ function account(){
 /* ---------- class: board & posts ---------- */
 function boardEntry(p){var st=LS.get("stat",{}),r=0,t=0;Object.keys(st).forEach(function(k){r+=st[k].r;t+=st[k].t});var mh=LS.get("mockhist",[]),mb=null;mh.forEach(function(h){if(mb==null||h.score>mb)mb=h.score});
   return {n:p.name||"",r:r,t:t,mb:mb,ml:mh.length?mh[mh.length-1].score:null,mc:mh.length,up:firebase.firestore.FieldValue.serverTimestamp()}}
-function postOf(d){var x=d.data();return {id:d.id,text:x.text||"",at:x.at&&x.at.toDate?x.at.toDate():null}}
+function postOf(d){var x=d.data();return {id:d.id,text:x.text||"",at:x.at&&x.at.toDate?x.at.toDate():null,ed:!!x.edited}}
 function fmtAt(d){return d?(d.getMonth()+1)+"/"+d.getDate()+" "+pad2(d.getHours())+":"+pad2(d.getMinutes()):"剛剛"}
 function postsHTML(ps,canDel){
   if(!ps.length)return '<p class="muted" style="margin-top:10px">目前沒有公告。</p>';
-  return '<ul class="posts">'+ps.map(function(x){return '<li><div class="ptx">'+escH(x.text).replace(/\n/g,"<br>")+'</div><div class="pmx"><span>'+fmtAt(x.at)+'</span>'+(canDel?'<button class="lnk" data-pdel="'+x.id+'">刪除</button>':'')+'</div></li>'}).join("")+'</ul>';
+  return '<ul class="posts">'+ps.map(function(x){return '<li><div class="ptx">'+escH(x.text).replace(/\n/g,"<br>")+'</div><div class="pmx"><span>'+fmtAt(x.at)+(x.ed?'・已編輯':'')+'</span>'+(canDel?'<button class="lnk" data-pedit="'+x.id+'">編輯</button><button class="lnk" data-pdel="'+x.id+'">刪除</button>':'')+'</div></li>'}).join("")+'</ul>';
 }
 var bMetric="t";
 function boardHTML(list,me){

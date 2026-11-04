@@ -39,7 +39,7 @@ service cloud.firestore {
       // 公告：同班同學和老師可讀；只有老師能發布和刪除
       match /posts/{pid} {
         allow read: if isTeacher(code) || isMember(code);
-        allow create, delete: if isTeacher(code);
+        allow create, update, delete: if isTeacher(code);
       }
     }
   }
