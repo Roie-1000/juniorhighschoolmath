@@ -9,25 +9,31 @@
 <title>會考數學總複習</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout: 方格紙底的單欄講義，左側年級索引；答案卡式的選項，紅筆標錯、螢光筆標口訣 */
+/* Layout: 筆記本風（深色號）：橫線紙、便利貼單元卡、手寫字體 */
 :root{
-  --paper:#f6f8f7; --sheet:#ffffff; --grid:#e3ebe8; --ink:#1d2a33; --muted:#5b6b70;
-  --line:#d3ddd9; --teal:#0f6b67; --teal-soft:#dff0ed; --red:#c23a2b; --red-soft:#fbe9e6;
-  --hl:#fff1a8; --ok:#1f7a3f; --ok-soft:#e2f3e7;
-  --f-display:"Noto Serif TC","Songti TC","PMingLiU",serif;
-  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --paper:#ecdfc0; --sheet:#f6ecd3; --grid:#d6c6a0; --ink:#2b2117; --muted:#5e4e3c;
+  --line:#cdb88c; --teal:#9a3f17; --teal-soft:#f0cdb2; --red:#a8281c; --red-soft:#f3c9bd;
+  --hl:#f2cf4f; --ok:#2f5e22; --ok-soft:#cfe3bf;
+  --bar:#2a2018; --bar-ink:#f6ecd3; --bar-acc:#e8935a; --margin:#c97a7a;
+  --n1:#f5e08a; --n2:#b5dcc4; --n3:#f4bfa9; --shadow:rgba(43,33,23,.22);
+  --f-display:"LXGW WenKai TC","Noto Serif TC","Songti TC",serif;
+  --f-body:"LXGW WenKai TC","Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --paper:#121a1c; --sheet:#182326; --grid:#1d2a2d; --ink:#e4ecea; --muted:#9db0b1;
-  --line:#2c3b3e; --teal:#5cc6bd; --teal-soft:#16393a; --red:#ff8a78; --red-soft:#3a2220;
-  --hl:#5a4e12; --ok:#6fd38f; --ok-soft:#173523; color-scheme:dark}}
+  --paper:#1f1912; --sheet:#2a221a; --grid:#352a1e; --ink:#f0e6d2; --muted:#bfae94;
+  --line:#4a3c2c; --teal:#f0a070; --teal-soft:#4a2e1c; --red:#ff8f7a; --red-soft:#47231c;
+  --hl:#6b5410; --ok:#9bd189; --ok-soft:#24361d;
+  --bar:#15100b; --bar-ink:#f0e6d2; --bar-acc:#f0a070; --margin:#7a3f3f;
+  --n1:#4a4220; --n2:#23402f; --n3:#4a2c22; --shadow:rgba(0,0,0,.4); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --paper:#121a1c; --sheet:#182326; --grid:#1d2a2d; --ink:#e4ecea; --muted:#9db0b1;
-  --line:#2c3b3e; --teal:#5cc6bd; --teal-soft:#16393a; --red:#ff8a78; --red-soft:#3a2220;
-  --hl:#5a4e12; --ok:#6fd38f; --ok-soft:#173523; color-scheme:dark}
+  --paper:#1f1912; --sheet:#2a221a; --grid:#352a1e; --ink:#f0e6d2; --muted:#bfae94;
+  --line:#4a3c2c; --teal:#f0a070; --teal-soft:#4a2e1c; --red:#ff8f7a; --red-soft:#47231c;
+  --hl:#6b5410; --ok:#9bd189; --ok-soft:#24361d;
+  --bar:#15100b; --bar-ink:#f0e6d2; --bar-acc:#f0a070; --margin:#7a3f3f;
+  --n1:#4a4220; --n2:#23402f; --n3:#4a2c22; --shadow:rgba(0,0,0,.4); color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.75;
   background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
@@ -146,7 +152,7 @@ button.lnk{background:none;border:0;padding:0;font:inherit;color:var(--teal);tex
 @media (max-width:520px){.acf{grid-template-columns:1fr 1fr}.acf label:first-child{grid-column:1/-1}}
 details.wk summary{cursor:pointer;font-weight:700;padding:8px 0}
 .sprint-in{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.sprint-in input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);color:var(--ink)}
+.sprint-in input{min-width:0;flex:1 1 160px;max-width:100%;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);color:var(--ink)}
 .hp ol{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:10px}
 .hp li{counter-increment:s;display:grid;grid-template-columns:2em 1fr;gap:8px}
 .hp li::before{content:counter(s);font-family:var(--f-mono);width:1.8em;height:1.8em;border-radius:50%;background:var(--teal-soft);color:var(--teal);display:grid;place-items:center;font-size:13px;margin-top:2px}
@@ -244,6 +250,32 @@ tr.grow td{font-family:var(--f-display);font-weight:700;padding-top:14px;color:v
   nav.main{order:2;margin-left:0}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+/* ---- 筆記本風 ---- */
+body{background-image:linear-gradient(var(--grid) 1px,transparent 1px);background-size:100% 32px;font-size:17px}
+body::after{content:"";position:fixed;top:0;bottom:0;left:max(10px,calc(50% - 470px));width:2px;background:var(--margin);opacity:.55;pointer-events:none;z-index:0}
+body::before{background:var(--bar)}
+header.top{background:var(--bar);border:0}
+header.top .brand{color:var(--bar-ink)}
+.brand span{color:var(--bar-acc)}
+nav.main a{color:var(--bar-ink);opacity:.85}
+nav.main a.on{background:var(--bar-acc);color:var(--bar);opacity:1}
+nav.main a .badge{background:var(--red)}
+.acc{color:var(--bar-ink);border-color:rgba(246,236,211,.35)}
+.acc.on{background:var(--bar-acc);color:var(--bar)}
+.grade-h{border-bottom:2px dashed var(--ink)}
+.units{gap:14px}
+.ucard{border:0;border-radius:2px;box-shadow:2px 3px 0 var(--shadow);background:var(--n1)}
+.grade:nth-of-type(3n+2) .ucard{background:var(--n2)}
+.grade:nth-of-type(3n) .ucard{background:var(--n3)}
+.ucard:nth-child(odd){transform:rotate(-.6deg)}
+.ucard:nth-child(even){transform:rotate(.5deg)}
+.ucard:hover{transform:none;border:0}
+.sheet,.hp,.qcard{border-radius:4px;box-shadow:2px 3px 0 var(--shadow)}
+.btn{border-radius:4px;box-shadow:2px 2px 0 var(--ink)}
+.btn.ghost{box-shadow:none}
+.hero h1{text-decoration:underline wavy var(--bar-acc);text-underline-offset:8px;text-decoration-thickness:2px}
+.tabs{background:var(--paper)}
+@media (prefers-reduced-motion:reduce){.ucard:nth-child(n){transform:none}}
 </style>
 
 <header class="top"><div class="wrap">
