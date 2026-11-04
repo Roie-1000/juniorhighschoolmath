@@ -254,7 +254,9 @@ tr.grow td{font-family:var(--f-display);font-weight:700;padding-top:14px;color:v
   nav.main a{padding:5px 8px;font-size:14px}
   .thm{order:1;margin-left:auto}
   .acc{order:1}
-  nav.main{order:2;margin-left:0}
+  nav.main{order:2;margin-left:0;flex-wrap:nowrap;overflow-x:auto;width:100%;scrollbar-width:none}
+  nav.main::-webkit-scrollbar{display:none}
+  nav.main a{padding:5px 7px;white-space:nowrap;flex:0 0 auto}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 /* ---- 筆記本風 ---- */
@@ -296,6 +298,7 @@ nav.main a .badge{background:var(--red)}
     <a href="#progress" data-nav="progress">進度</a>
     <a href="#mock" data-nav="mock">模擬考</a>
     <a href="#sprint" data-nav="sprint">衝刺</a>
+    <a href="#gifted" data-nav="gifted">資優</a>
   </nav>
   <button class="thm" id="thm" type="button" aria-label="切換深色模式"></button>
   <a class="acc" href="#account" id="navacc">登入</a>
@@ -490,7 +493,7 @@ function startMock(){
 }
 function renderMock(){
   var h='<div class="mockbar"><span class="timer" id="tm">00:00</span><div class="sheetmap" id="smap">'+mock.qs.map(function(_,k){return '<a href="#mock" data-j="'+k+'">'+(k+1)+'</a>'}).join("")+'</div><button class="btn" id="submit">交卷</button></div>';
-  h+='<div class="stack" style="margin-top:16px">'+mock.qs.map(function(q,k){return qHTML(q,k,"m",(q.mix?"模擬考題・":"基本題・")+byId[q.u].t)}).join("")+'</div>';
+  h+='<div class="stack" style="margin-top:16px">'+mock.qs.map(function(q,k){return qHTML(q,k,"m",(q.gift?"資優題・":q.mix?"模擬考題・":"基本題・")+byId[q.u].t)}).join("")+'</div>';
   h+='<div id="confirm" class="sheet" hidden style="margin-top:16px"></div>';
   app.innerHTML=h;
   app.querySelectorAll(".qcard .opt").forEach(function(b){b.onclick=function(){
@@ -517,13 +520,14 @@ function finish(){
   qs.forEach(function(q,k){var a=mock.ans[k];q.yours=a;q.ok=a===q.c;if(q.ok)right++;if(a==null)blank++;var p=per[q.u]=per[q.u]||{r:0,t:0};p.t++;if(q.ok)p.r++});
   var score=Math.round(right/qs.length*100);
   var mixT=qs.filter(function(q){return q.mix}),mixR=mixT.filter(function(q){return q.ok}).length,basT=qs.length-mixT.length,basR=right-mixR;
+  if(mock.gifted){var dg=new Date();LS.set("glast",{score:score,right:right,total:qs.length,date:(dg.getMonth()+1)+"/"+dg.getDate()})}
   LS.set("lastMock",today());var d=new Date();LS.set("mocklast",{score:score,right:right,total:qs.length,date:(d.getMonth()+1)+"/"+d.getDate()});
   var hist=LS.get("mockhist",[]);hist.push({d:(d.getMonth()+1)+"/"+d.getDate(),score:score,label:mock.label});LS.set("mockhist",hist.slice(-50));
   var added=0;qs.forEach(function(q){var st=record(q.key,q.u,q.ok);if(st==="added")added++});
   var R=54,C=2*Math.PI*R;
-  var h='<section class="stack"><div><p class="eyebrow">模擬考結果</p><h1>答題狀況</h1></div>';
+  var h='<section class="stack"><div><p class="eyebrow">'+(mock.gifted?'資優模擬考結果':'模擬考結果')+'</p><h1>答題狀況</h1></div>';
   h+='<div class="sheet res-top"><svg class="ring" viewBox="0 0 132 132" role="img" aria-label="得分 '+score+' 分"><circle cx="66" cy="66" r="'+R+'" fill="none" stroke="var(--line)" stroke-width="12"/><circle cx="66" cy="66" r="'+R+'" fill="none" stroke="'+(score>=60?"var(--teal)":"var(--red)")+'" stroke-width="12" stroke-linecap="round" stroke-dasharray="'+(C*right/qs.length)+' '+C+'" transform="rotate(-90 66 66)"/><text x="66" y="64" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="34" fill="var(--ink)">'+score+'</text><text x="66" y="88" text-anchor="middle" font-size="13" fill="var(--muted)">分</text></svg>'+
-  '<div class="stack"><dl class="res-stats"><dt>答對</dt><dt>答錯</dt><dt>未作答</dt><dd style="color:var(--ok)">'+right+'</dd><dd style="color:var(--red)">'+(qs.length-right-blank)+'</dd><dd>'+blank+'</dd></dl><p class="muted">作答時間 '+mmss(mock.time)+'・共 '+qs.length+' 題・'+mock.label+'</p><p>基本題答對 <b>'+basR+' / '+basT+'</b>・模擬考題答對 <b>'+mixR+' / '+mixT.length+'</b></p><p>'+(score>=90?"非常穩定！把錯題解析看完，就能維持這個水準。":score>=70?"基礎紮實，下面標紅色的單元是你最該補強的地方。":score>=50?"有一半以上的觀念掌握了，先從答對率最低的單元回去複習。":"先別急，從下面答對率最低的單元開始，把重點複習和易錯觀念讀一遍再練習。")+'</p></div></div>';
+  '<div class="stack"><dl class="res-stats"><dt>答對</dt><dt>答錯</dt><dt>未作答</dt><dd style="color:var(--ok)">'+right+'</dd><dd style="color:var(--red)">'+(qs.length-right-blank)+'</dd><dd>'+blank+'</dd></dl><p class="muted">作答時間 '+mmss(mock.time)+'・共 '+qs.length+' 題・'+mock.label+'</p><p>'+(mock.gifted?'資優模擬考・答對 <b>'+right+' / '+qs.length+'</b>':'基本題答對 <b>'+basR+' / '+basT+'</b>・模擬考題答對 <b>'+mixR+' / '+mixT.length+'</b>')+'</p><p>'+(score>=90?"非常穩定！把錯題解析看完，就能維持這個水準。":score>=70?"基礎紮實，下面標紅色的單元是你最該補強的地方。":score>=50?"有一半以上的觀念掌握了，先從答對率最低的單元回去複習。":"先別急，從下面答對率最低的單元開始，把重點複習和易錯觀念讀一遍再練習。")+'</p></div></div>';
   var rows=Object.keys(per).map(function(id){return {u:byId[id],r:per[id].r,t:per[id].t}}).sort(function(a,b){return a.r/a.t-b.r/b.t||a.u.n-b.u.n});
   h+='<div class="sheet"><h2>各單元答對率</h2><p class="muted" style="margin:4px 0 10px">由最弱排到最強，點單元名稱可以直接回去複習。</p><div class="tbl"><table><thead><tr><th>單元</th><th>答對</th><th style="width:30%">答對率</th></tr></thead><tbody>'+
     rows.map(function(x){var p=x.r/x.t;return '<tr><td><a href="#'+x.u.id+'">'+x.u.g+'・'+x.u.t+'</a></td><td class="num">'+x.r+' / '+x.t+'</td><td><div class="bar'+(p<0.5?" low":"")+'"><i style="width:'+Math.round(p*100)+'%"></i></div></td></tr>'}).join("")+'</tbody></table></div></div>';
@@ -532,7 +536,7 @@ function finish(){
   h+=wrong.map(function(q){return '<div class="qcard wrongq"><div class="qn">第 '+(q.k+1)+' 題・<a href="#'+q.u+'">'+byId[q.u].t+'</a></div><p class="qt">'+fmt(q.q)+'</p>'+figOf(q.q)+'<p class="yours">你的答案：'+(q.yours==null?'未作答':fmt(q.yours))+'</p><p class="corr">正確答案：'+fmt(q.c)+'</p><div class="exp no"><b>解析</b>'+fmt(q.e)+'</div></div>'}).join("");
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="again">再考一回</button><a class="btn ghost" href="#home">回單元列表</a></div></section>';
   app.innerHTML=h;window.scrollTo(0,0);
-  document.getElementById("again").onclick=mockSetup;
+  document.getElementById("again").onclick=mock.gifted?function(){location.hash="#gifted";route()}:mockSetup;
 }
 
 /* ---------- order ---------- */
@@ -573,8 +577,59 @@ function formulas(){
 }
 
 /* ---------- 錯題本與學習紀錄 ---------- */
+
+/* ---------- gifted zone ---------- */
+var GN=20,gsel={"七":1,"八":1,"九":1};
+function gInRange(u){return !!gsel[byId[u].g.charAt(0)]}
+function gPool(){return GIFTED.map(function(x,k){return "g:"+k}).filter(function(k){return gInRange(GIFTED[+k.slice(2)].u)})}
+function gifted(){
+  clearInterval(timerId);
+  var seen=LS.get("gseen",{}),pool=gPool(),un=pool.filter(function(k){return !seen[k]}).length,gl=LS.get("glast",null);
+  var h='<section class="stack"><div><p class="eyebrow">資優生專區</p><h1>挑戰會考的難題</h1><p class="muted" style="margin-top:8px">每個單元 5 題挑戰題，題型照會考常見的難題和陷阱設計（全部是原創題，不是歷屆原題）。每題都有詳細解析，答錯會自動收進錯題本。</p></div>';
+  h+='<div class="sheet"><h2>資優模擬考</h2><p style="margin-top:6px">每回 '+GN+' 題，全部從挑戰題庫抽出、順序打亂，考過的題目會先避開。建議作答 50 分鐘，交卷後看分數、各單元答對率和每一題的解析。</p><h3 style="margin-top:14px">出題範圍（可複選）</h3><div class="ranges">'+["七","八","九"].map(function(r){return '<button class="chip'+(gsel[r]?" on":"")+'" data-gr="'+r+'" aria-pressed="'+!!gsel[r]+'">'+(gsel[r]?"✓ ":"")+r+'年級</button>'}).join("")+'</div><p class="muted" id="gnote" style="margin:-8px 0 14px">這個範圍共 '+pool.length+' 題，還有 '+un+' 題沒考過</p><button class="btn" id="ggo">開始資優模擬考</button>'+(gl?'<p class="muted" style="margin-top:10px">上一次：'+gl.score+' 分（答對 '+gl.right+' / '+gl.total+'），'+gl.date+'</p>':'')+'</div>';
+  GR.forEach(function(g){
+    var us=UNITS.filter(function(u){return u.g===g});
+    h+='<section class="grade"><div class="grade-h"><h2>'+g+'</h2><small>單元挑戰・每單元 5 題</small></div><div class="units">';
+    us.forEach(function(u){var b=LS.get("gbest:"+u.id,null);h+='<a class="ucard" href="#g-'+u.id+'"><span class="no">'+String(u.n).padStart(2,"0")+'</span><span class="tt">'+u.t+'</span><span class="meta">'+(b!=null?'<span class="tag done">挑戰最佳 '+b+'/5</span>':'<span>尚未挑戰</span>')+'</span></a>'});
+    h+='</div></section>';
+  });
+  app.innerHTML=h+'</section>';
+  app.querySelectorAll("[data-gr]").forEach(function(c){c.onclick=function(){var r=c.dataset.gr;if(gsel[r]&&Object.keys(gsel).filter(function(x){return gsel[x]}).length===1){document.getElementById("gnote").textContent="至少要選一個年級。";return}gsel[r]=gsel[r]?0:1;gifted()}});
+  document.getElementById("ggo").onclick=startGifted;
+}
+function startGifted(){
+  var seen=LS.get("gseen",{}),pool=gPool(),fresh=shuffle(pool.filter(function(k){return !seen[k]}));
+  var pick=fresh.slice(0,GN);
+  if(pick.length<GN){pool.forEach(function(k){delete seen[k]});var t={};pick.forEach(function(k){t[k]=1});pick=pick.concat(shuffle(pool.filter(function(k){return !t[k]})).slice(0,GN-pick.length))}
+  pick.forEach(function(k){seen[k]=1});LS.set("gseen",seen);
+  var k3=["七","八","九"].filter(function(x){return gsel[x]});
+  mock={qs:shuffle(pick.map(keyQ)),ans:{},start:Date.now(),done:false,gifted:true,label:"資優模擬考・"+(k3.length===3?"全範圍":k3.join("、")+"年級")};
+  location.hash="#mock";route();
+}
+function giftedUnit(u){
+  var list=GIFTED.map(function(x,k){return k}).filter(function(k){return GIFTED[k].u===u.id});
+  var qs=shuffle(list).map(function(k){return keyQ("g:"+k)}),answered=0,right=0;
+  var h='<section class="stack"><p class="crumb"><a href="#gifted">資優生專區</a> › '+u.g+'</p><div><p class="eyebrow">單元挑戰</p><h1>'+u.t+'</h1><p class="muted" style="margin-top:6px">5 題挑戰題，每題選完馬上看解析。卡住的話先回<a href="#'+u.id+'">單元重點</a>看一下。</p></div>';
+  h+=qs.map(function(q,k){return qHTML(q,k,"g","挑戰題")}).join("");
+  h+='<div class="scorebar"><span class="big" id="gsn">0 / 5</span><span class="muted" id="gst">已作答 0 題</span><button class="btn ghost" id="gredo" style="margin-left:auto">重新挑戰</button></div></section>';
+  app.innerHTML=h;
+  qs.forEach(function(q,k){
+    app.querySelectorAll('[data-q="g'+k+'"] .opt').forEach(function(b){b.onclick=function(){
+      var card=b.closest(".qcard"),ok=q.opts[+b.dataset.i]===q.c;
+      card.querySelectorAll(".opt").forEach(function(x){x.disabled=true;if(q.opts[+x.dataset.i]===q.c)x.classList.add("right")});
+      if(!ok)b.classList.add("wrong");
+      var st=record(q.key,u.id,ok),ex=document.createElement("div");ex.className="exp "+(ok?"ok":"no");
+      ex.innerHTML="<b>"+(ok?"答對了":"答錯了，正解是 "+fmt(q.c))+"</b>"+fmt(q.e)+(st?'<div class="wbst">'+wbStatusText(st)+'</div>':"");card.appendChild(ex);
+      answered++;if(ok)right++;document.getElementById("gsn").textContent=right+" / 5";
+      if(answered===5){var b0=LS.get("gbest:"+u.id,null);if(b0==null||right>b0)LS.set("gbest:"+u.id,right);document.getElementById("gst").textContent=right===5?"全對！資優等級。":right>=3?"不錯，把錯的解析再看一次。":"這單元的難題還要加強，先回去看重點再挑戰。"}
+      else document.getElementById("gst").textContent="已作答 "+answered+" 題";
+    }});
+  });
+  document.getElementById("gredo").onclick=function(){giftedUnit(u);window.scrollTo(0,0)};
+}
 function keyQ(key){
   var p=key.split(":");
+  if(p[0]==="g"){var g=GIFTED[+p[1]];if(!g)return null;return {q:g.q,c:g.c,opts:shuffle([g.c].concat(g.w)),e:g.e,u:g.u,key:key,gift:true}}
   if(p[0]==="x"){var x=EXTRA[+p[1]];if(!x)return null;return {q:x.q,c:x.c,opts:shuffle([x.c].concat(x.w)),e:x.e,u:x.u,key:key,mix:true}}
   var u=byId[p[0]];if(!u||!u.qz[+p[1]])return null;var q=mkQ(u.qz[+p[1]]);q.u=u.id;q.key=key;return q;
 }
@@ -1069,13 +1124,15 @@ function route(){
   var hsh=(location.hash||(TM?"#teacher":"#home")).slice(1);
   if(TM&&(hsh==="home"||hsh===""))hsh="teacher";
   if(!TM&&hsh==="teacher"){location.replace("teacher.html");return}
-  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":hsh==="formulas"?"formulas":hsh==="wrongbook"?"wrongbook":hsh==="progress"?"progress":hsh==="sprint"?"sprint":hsh==="teacher"?"teacher":hsh==="account"?"account":"home"))});
+  document.querySelectorAll("nav.main a").forEach(function(a){a.classList.toggle("on",a.dataset.nav===(hsh==="mock"?"mock":hsh==="order"?"order":hsh==="formulas"?"formulas":hsh==="wrongbook"?"wrongbook":hsh==="progress"?"progress":hsh==="sprint"?"sprint":(hsh==="gifted"||/^g-u\d+$/.test(hsh))?"gifted":hsh==="teacher"?"teacher":hsh==="account"?"account":"home"))});
   if(hsh==="mock"){if(mock&&!mock.done&&document.getElementById("smap"))return;if(mock&&!mock.done){renderMock();return}mockSetup()}
   else if(hsh==="order")order();
   else if(hsh==="formulas")formulas();
   else if(hsh==="wrongbook")wrongbook();
   else if(hsh==="progress")progress();
   else if(hsh==="sprint")sprint();
+  else if(hsh==="gifted")gifted();
+  else if(/^g-u\d+$/.test(hsh)&&byId[hsh.slice(2)])giftedUnit(byId[hsh.slice(2)]);
   else if(hsh==="teacher")teacher();
   else if(hsh==="account")account();
   else if(hsh==="class")classPage();
