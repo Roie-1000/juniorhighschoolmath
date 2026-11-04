@@ -247,7 +247,8 @@ tr.grow td{font-family:var(--f-display);font-weight:700;padding-top:14px;color:v
   .top .wrap{gap:8px}
   .brand{font-size:17px}
   nav.main a{padding:5px 8px;font-size:14px}
-  .acc{order:1;margin-left:auto}
+  .thm{order:1;margin-left:auto}
+  .acc{order:1}
   nav.main{order:2;margin-left:0}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
@@ -263,6 +264,8 @@ nav.main a.on{background:var(--bar-acc);color:var(--bar);opacity:1}
 nav.main a .badge{background:var(--red)}
 .acc{color:var(--bar-ink);border-color:rgba(246,236,211,.35)}
 .acc.on{background:var(--bar-acc);color:var(--bar)}
+.thm{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid rgba(246,236,211,.35);border-radius:16px;background:none;color:var(--bar-ink);font-size:14px;cursor:pointer;white-space:nowrap;line-height:1.6}
+.thm:hover,.acc:hover{border-color:var(--bar-acc)}
 .grade-h{border-bottom:2px dashed var(--ink)}
 .units{gap:14px}
 .ucard{border:0;border-radius:2px;box-shadow:2px 3px 0 var(--shadow);background:var(--n1)}
@@ -289,6 +292,7 @@ nav.main a .badge{background:var(--red)}
     <a href="#mock" data-nav="mock">模擬考</a>
     <a href="#sprint" data-nav="sprint">衝刺</a>
   </nav>
+  <button class="thm" id="thm" type="button" aria-label="切換深色模式"></button>
   <a class="acc" href="#account" id="navacc">登入</a>
 </div></header>
 <main class="wrap" id="app"></main>
@@ -3015,6 +3019,11 @@ function route(){
 function hh(){var t=document.querySelector("header.top");if(t)document.documentElement.style.setProperty("--hh",t.offsetHeight+"px")}
 window.addEventListener("resize",hh);hh();
 if(TM){document.title="會考數學・教師後台";var br=document.querySelector(".brand");br.href="#teacher";br.innerHTML='會考數學<span>教師後台</span>';document.querySelector("nav.main").innerHTML='<a href="#teacher" data-nav="teacher">班級管理</a><a href="./">學生網站 ↗</a>'}
+var THEMES=[["auto","◐ 自動","跟著裝置設定"],["light","☀ 淺色","淺色模式"],["dark","☾ 深色","深色模式"]];
+function applyTheme(){var t=LS.get("theme","auto"),r=document.documentElement;if(t==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",t);
+  var b=document.getElementById("thm");if(b){var x=THEMES.filter(function(z){return z[0]===t})[0]||THEMES[0];b.textContent=x[1];b.title="目前："+x[2]+"（點一下切換）";b.setAttribute("aria-label","外觀："+x[2]+"，點一下切換")}}
+document.getElementById("thm").onclick=function(){var t=LS.get("theme","auto"),i=THEMES.map(function(z){return z[0]}).indexOf(t);LS.raw("theme",THEMES[(i+1)%3][0]);applyTheme()};
+applyTheme();
 window.addEventListener("hashchange",route);updBadge();route();
 if(FB.on)setTimeout(function(){fbLoad()},300);else{var na0=document.getElementById("navacc");if(na0)na0.hidden=true}
 })();
