@@ -119,6 +119,16 @@ p{margin:0}
 .week div{border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--sheet);font-size:14px}
 .week div b{display:block;margin-bottom:4px}
 details.wk{margin-bottom:8px}
+.chatlist{max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:10px;background:var(--paper);border:1px solid var(--line);border-radius:6px}
+.cm{max-width:85%;align-self:flex-start}
+.cm.mine{align-self:flex-end;text-align:right}
+.cmh{font-size:12px;color:var(--muted);margin-bottom:2px}
+.cmb{display:inline-block;text-align:left;padding:6px 12px;border-radius:12px 12px 12px 2px;background:var(--sheet);border:1px solid var(--line);word-break:break-word}
+.cm.mine .cmb{border-radius:12px 12px 2px 12px;background:var(--teal-soft);border-color:transparent}
+.cm.tch .cmb{border-color:var(--teal);border-width:2px}
+.tbadge{display:inline-block;background:var(--teal);color:var(--sheet);border-radius:4px;padding:0 6px;margin-right:4px;font-size:11px}
+.chatin{display:flex;gap:8px;margin-top:10px;align-items:flex-end}
+.chatin textarea{flex:1;min-width:0;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);color:var(--ink);resize:vertical;max-height:140px}
 .posts{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
 .posts li{border-left:3px solid var(--teal);background:var(--paper);padding:10px 12px;border-radius:0 6px 6px 0}
 .posts .pmx button{font-size:13px}
@@ -717,12 +727,13 @@ function teacherCloud(h){
     Promise.all([db().collection("users").where("cls","==",TC.sel).where("tch","==",FB.user.uid).get(),cref.collection("posts").orderBy("at","desc").limit(30).get().catch(function(){return {docs:[]}}),cref.collection("board").get().catch(function(){return {docs:[]}})]).then(function(r){TC.list=r[0].docs.map(cloudToO).sort(function(a,b){return a.n.localeCompare(b.n,"zh-Hant",{numeric:true})});TC.posts=r[1].docs.map(postOf);TC.board=r[2].docs.map(function(d){var x=d.data();x.uid=d.id;return x});tRe()}).catch(function(e){TC.list=[];TC.msg="讀取學生失敗："+e.message;tRe()});return}
   var cc=curClass(),kk=cc?Object.keys(cc.kicked||{}):[];
   if(TC.sel)h+='<div class="sheet"><h2>班級公告</h2><p class="muted" style="margin:4px 0 10px">發布後，班上學生會在首頁和「班級」頁看到。</p><textarea class="code" id="pin" rows="3" maxlength="500" placeholder="例如：週五小考範圍是相似形，記得做完練習 10 題。" style="font-family:inherit;font-size:15px"></textarea><div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap"><button class="btn" id="padd">發布公告</button><span class="muted" id="pmsg" style="font-size:14px"></span></div>'+postsHTML(TC.posts||[],true)+'</div>'+
-    '<div class="sheet"><h2>班級排行榜</h2><p class="muted" style="margin:4px 0 10px">學生也看得到這個排行榜（只限同班）。</p>'+boardHTML(TC.board||[],null)+'</div>';
+    '<div class="sheet"><h2>班級排行榜</h2><p class="muted" style="margin:4px 0 10px">學生也看得到這個排行榜（只限同班）。</p>'+boardHTML(TC.board||[],null)+'</div>'+chatShell("老師可以刪除任何一則訊息。");
   if(TC.sel)h+=(TC.list.length?classHTML(TC.list):'<div class="sheet"><p>這個班級還沒有學生加入。</p></div>')+
     (kk.length?'<div class="sheet"><h2>已踢出的學生</h2><p class="muted" style="margin:4px 0 10px">這些學生不能再用班級代碼加入，按「允許重新加入」後才可以。</p><ul class="tasks">'+kk.map(function(uid){return '<li><div class="tt">'+escH(cc.kicked[uid])+'</div><button class="btn ghost go" data-unk="'+uid+'">允許重新加入</button></li>'}).join("")+'</ul></div>':'')+
     '<div><button class="btn ghost" id="crf">重新整理</button></div>';
   app.innerHTML=h+'</section>';bindTC();bindClass();
   bindBoard(function(){teacher()});
+  if(TC.sel)startChat(TC.sel,true);
   var pa=document.getElementById("padd");if(pa)pa.onclick=function(){
     var t=document.getElementById("pin").value.trim(),m=document.getElementById("pmsg");if(!t){m.textContent="請先輸入公告內容。";return}
     pa.disabled=true;db().collection("classes").doc(TC.sel).collection("posts").add({text:t,at:firebase.firestore.FieldValue.serverTimestamp(),by:FB.user.displayName||""})
@@ -911,9 +922,42 @@ function classPage(){
   if(CS.err)h+='<p class="muted">'+escH(CS.err)+'</p>';
   h+='<div class="sheet"><h2>老師公告</h2>'+postsHTML(CS.posts,false)+'</div>';
   h+='<div class="sheet"><h2>班級排行榜</h2><p class="muted" style="margin:4px 0 10px">只有同班同學和老師看得到。答對率要作答滿 30 題才會列入。</p>'+boardHTML(CS.board,FB.user.uid)+'</div>';
+  h+=chatShell("同班同學和老師都看得到，請友善發言。");
   h+='<div><button class="btn ghost" id="csr">重新整理</button></div></section>';
-  app.innerHTML=h;bindBoard(classPage);
+  app.innerHTML=h;bindBoard(classPage);startChat(FB.prof.cls,false);
   document.getElementById("csr").onclick=function(){CS.posts=null;pushNow(function(){classPage()})};
+}
+
+/* ---------- class chat ---------- */
+var chatUnsub=null,chatLast=0;
+function stopChat(){if(chatUnsub){try{chatUnsub()}catch(e){}chatUnsub=null}}
+function chatShell(note){
+  return '<div class="sheet" id="chat"><h2>班級聊天區</h2><p class="muted" style="margin:4px 0 10px">'+note+'</p><div class="chatlist" id="chatlist" aria-live="polite"><p class="muted">讀取中…</p></div>'+
+    '<div class="chatin"><textarea id="chatin" rows="1" maxlength="300" placeholder="輸入訊息…" aria-label="輸入訊息"></textarea><button class="btn" id="chatsend">送出</button></div><p class="muted" id="chatmsg" style="font-size:13px;margin-top:4px"></p></div>';
+}
+function startChat(code,mod){
+  stopChat();
+  var list=document.getElementById("chatlist"),inp=document.getElementById("chatin"),btn=document.getElementById("chatsend"),msg=document.getElementById("chatmsg");
+  if(!list||!FB.user)return;
+  var me=FB.user.uid,ref=db().collection("classes").doc(code).collection("chat");
+  chatUnsub=ref.orderBy("at","desc").limit(60).onSnapshot(function(q){
+    var el=document.getElementById("chatlist");if(!el)return;
+    var near=el.scrollHeight-el.scrollTop-el.clientHeight<60;
+    var ms=q.docs.map(function(d){var x=d.data({serverTimestamps:"estimate"});return {id:d.id,uid:x.uid,n:x.name||"同學",t:x.role==="t",text:x.text||"",at:x.at&&x.at.toDate?x.at.toDate():new Date()}}).reverse();
+    el.innerHTML=ms.length?ms.map(function(m){var mine=m.uid===me;return '<div class="cm'+(mine?" mine":"")+(m.t?" tch":"")+'"><div class="cmh">'+(m.t?'<span class="tbadge">老師</span>':'')+escH(mine?"我":m.n)+'・'+fmtAt(m.at)+((mine||mod)?' <button class="lnk" data-cdel="'+m.id+'">刪除</button>':'')+'</div><div class="cmb">'+escH(m.text).replace(/\n/g,"<br>")+'</div></div>'}).join(""):'<p class="muted">還沒有人說話，打聲招呼吧！</p>';
+    if(near||!el.dataset.init){el.scrollTop=el.scrollHeight;el.dataset.init=1}
+    el.querySelectorAll("[data-cdel]").forEach(function(b){var arm=false;b.onclick=function(){if(!arm){arm=true;b.textContent="確定刪除";return}ref.doc(b.dataset.cdel).delete().catch(function(e){msg.textContent="刪除失敗："+e.message})}});
+  },function(e){var el=document.getElementById("chatlist");if(el)el.innerHTML='<p class="muted">聊天區讀取失敗：'+escH(e.message)+'（請確認 Firestore 規則已更新）</p>'});
+  function send(){
+    var t=inp.value.trim();if(!t)return;
+    if(Date.now()-chatLast<3000){msg.textContent="慢一點，3 秒後再送。";return}
+    chatLast=Date.now();btn.disabled=true;msg.textContent="";
+    ref.add({uid:me,name:mod?(FB.user.displayName||"老師"):((FB.prof&&FB.prof.name)||FB.user.displayName||"同學"),role:mod?"t":"s",text:t,at:firebase.firestore.FieldValue.serverTimestamp()})
+      .then(function(){inp.value="";btn.disabled=false;inp.focus();var el=document.getElementById("chatlist");if(el)el.scrollTop=el.scrollHeight})
+      .catch(function(e){btn.disabled=false;msg.textContent="送出失敗："+e.message});
+  }
+  btn.onclick=send;
+  inp.onkeydown=function(e){if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();send()}};
 }
 var anncAt=0,anncData=null;
 function loadAnnc(){
@@ -1016,6 +1060,7 @@ function bindEx(){
   var c=document.getElementById("exc");if(c)c.onclick=function(){LS.set("exam",null);LS.set("sprintDay",null);sprint()};
 }
 function route(){
+  stopChat();
   var hsh=(location.hash||(TM?"#teacher":"#home")).slice(1);
   if(TM&&(hsh==="home"||hsh===""))hsh="teacher";
   if(!TM&&hsh==="teacher"){location.replace("teacher.html");return}

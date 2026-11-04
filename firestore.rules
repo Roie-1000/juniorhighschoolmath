@@ -41,6 +41,19 @@ service cloud.firestore {
         allow read: if isTeacher(code) || isMember(code);
         allow create, update, delete: if isTeacher(code);
       }
+      // 聊天區：同班同學和老師可讀、可發言；自己的訊息或老師可以刪除
+      match /chat/{mid} {
+        allow read: if isTeacher(code) || isMember(code);
+        allow create: if (isTeacher(code) || isMember(code))
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 300
+          && request.resource.data.at == request.time
+          && (request.resource.data.role == "s" || (request.resource.data.role == "t" && isTeacher(code)));
+        allow delete: if isTeacher(code)
+          || (request.auth != null && resource.data.uid == request.auth.uid);
+      }
     }
   }
 }
