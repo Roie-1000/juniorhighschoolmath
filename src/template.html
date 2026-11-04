@@ -469,16 +469,21 @@ function selLabel(){var k=["七","八","九"].filter(function(x){return sel[x]})
 function mockSetup(){
   clearInterval(timerId);
   var last=LS.get("mocklast",null);
-  var h='<section class="stack setup"><div><p class="eyebrow">模擬考</p><h1>來一回 25 題的模擬考</h1></div><div class="sheet"><p>每回 25 題：<b>15 題模擬考專用題</b>（只在模擬考出現，比練習題更接近會考）混著 <b>10 題基本題</b>（來自各單元的練習 10 題），順序打亂。考過的題目會先避開，盡量不重複。全部作答後按「交卷」，就會看到分數、各單元的答對率，以及每一題錯題的解析。</p><p class="muted" style="margin-top:8px">建議作答時間 60 分鐘，計時只供參考，時間到不會強制交卷。</p><h3 style="margin-top:18px">出題範圍（可複選）</h3><div class="ranges">'+["七","八","九"].map(function(r){return '<button class="chip'+(sel[r]?" on":"")+'" data-r="'+r+'" aria-pressed="'+!!sel[r]+'">'+(sel[r]?"✓ ":"")+r+'年級</button>'}).join("")+'</div><p class="muted" id="rnote" style="margin:-8px 0 14px">目前範圍：'+selLabel()+'・這個範圍還有 '+unseenCount()+' / '+poolKeys().length+' 題沒在模擬考出現過</p><button class="btn" id="go">開始作答</button></div>'+
+  var h='<section class="stack setup"><div><p class="eyebrow">模擬考</p><h1>來一回 25 題的模擬考</h1></div><div class="sheet"><p>每回 25 題：<b>12 題模擬考專用題</b>（只在模擬考出現，比練習題更接近會考）、<b>3 題歷屆會考改編題</b>（111～115 年會考題改數字、換情境），再混著 <b>10 題基本題</b>（來自各單元的練習 10 題），順序打亂。考過的題目會先避開，盡量不重複。全部作答後按「交卷」，就會看到分數、各單元的答對率，以及每一題錯題的解析。</p><p class="muted" style="margin-top:8px">建議作答時間 60 分鐘，計時只供參考，時間到不會強制交卷。</p><h3 style="margin-top:18px">出題範圍（可複選）</h3><div class="ranges">'+["七","八","九"].map(function(r){return '<button class="chip'+(sel[r]?" on":"")+'" data-r="'+r+'" aria-pressed="'+!!sel[r]+'">'+(sel[r]?"✓ ":"")+r+'年級</button>'}).join("")+'</div><p class="muted" id="rnote" style="margin:-8px 0 14px">目前範圍：'+selLabel()+'・這個範圍還有 '+unseenCount()+' / '+poolKeys().length+' 題沒在模擬考出現過</p><button class="btn" id="go">開始作答</button></div>'+
   (last?'<p class="muted">上一次模擬考：'+last.score+' 分（答對 '+last.right+' / '+last.total+'），'+last.date+'</p>':'')+'</section>';
   app.innerHTML=h;
   app.querySelectorAll(".chip").forEach(function(c){c.onclick=function(){var r=c.dataset.r;if(sel[r]&&Object.keys(sel).filter(function(x){return sel[x]}).length===1){document.getElementById("rnote").textContent="至少要選一個年級。";return}sel[r]=sel[r]?0:1;mockSetup()}});
   document.getElementById("go").onclick=startMock;
 }
-function poolKeys(){var ks=[];UNITS.forEach(function(u){if(inRange(u.g))u.qz.forEach(function(_,k){ks.push(u.id+":"+k)})});EXTRA.forEach(function(x,k){if(inRange(byId[x.u].g))ks.push("x:"+k)});return ks}
+function capMock(){return capList().map(function(x,k){return {x:x,key:"c:"+k}}).filter(function(o){return o.x.m&&inRange(byId[o.x.u].g)})}
+function poolKeys(){var ks=[];UNITS.forEach(function(u){if(inRange(u.g))u.qz.forEach(function(_,k){ks.push(u.id+":"+k)})});EXTRA.forEach(function(x,k){if(inRange(byId[x.u].g))ks.push("x:"+k)});capMock().forEach(function(o){ks.push(o.key)});return ks}
 function unseenCount(){var seen=LS.get("seen",{});return poolKeys().filter(function(k){return !seen[k]}).length}
 function startMock(){
-  var NMIX=15,NBASIC=10,seen=LS.get("seen",{});
+  var NCAP=3,NBASIC=10,seen=LS.get("seen",{});
+  /* 會考改編題：從篩選過的改編題抽 3 題 */
+  var capAll=capMock(),cpick=shuffle(capAll.filter(function(o){return !seen[o.key]})).slice(0,NCAP);
+  if(cpick.length<NCAP){capAll.forEach(function(o){delete seen[o.key]});var ct={};cpick.forEach(function(o){ct[o.key]=1});cpick=cpick.concat(shuffle(capAll.filter(function(o){return !ct[o.key]})).slice(0,NCAP-cpick.length))}
+  var NMIX=15-cpick.length;
   /* 模擬考專用題：先出沒考過的，不夠就讓這一池重新輪 */
   var mixAll=EXTRA.map(function(x,k){return {x:x,key:"x:"+k}}).filter(function(o){return inRange(byId[o.x.u].g)});
   var pick=shuffle(mixAll.filter(function(o){return !seen[o.key]})).slice(0,NMIX);
@@ -488,6 +493,7 @@ function startMock(){
     pick=pick.concat(shuffle(mixAll.filter(function(o){return !taken[o.key]})).slice(0,NMIX-pick.length));
   }
   var qs=pick.map(function(o){seen[o.key]=1;return {q:o.x.q,c:o.x.c,opts:shuffle([o.x.c].concat(o.x.w)),e:o.x.e,u:o.x.u,mix:true,key:o.key}});
+  cpick.forEach(function(o){seen[o.key]=1;var q=keyQ(o.key);q.mix=true;delete q.gift;qs.push(q)});
   /* 基本題：從各單元練習題平均抽，同樣先出沒考過的 */
   var us=UNITS.filter(function(u){return inRange(u.g)});
   var basicKeys=[];us.forEach(function(u){u.qz.forEach(function(_,k){basicKeys.push(u.id+":"+k)})});
