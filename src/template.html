@@ -546,7 +546,7 @@ function finish(){
   var mixT=qs.filter(function(q){return q.mix}),mixR=mixT.filter(function(q){return q.ok}).length,basT=qs.length-mixT.length,basR=right-mixR;
   if(mock.gifted){var dg=new Date(),rec={score:score,right:right,total:qs.length,date:(dg.getMonth()+1)+"/"+dg.getDate()};LS.set(mock.capY?"caplast:"+mock.capY:"glast",rec)}
   LS.set("lastMock",today());var d=new Date();LS.set("mocklast",{score:score,right:right,total:qs.length,date:(d.getMonth()+1)+"/"+d.getDate()});
-  var hist=LS.get("mockhist",[]);hist.push({d:(d.getMonth()+1)+"/"+d.getDate(),score:score,label:mock.label});LS.set("mockhist",hist.slice(-50));
+  var hist=LS.get("mockhist",[]);hist.push({d:(d.getMonth()+1)+"/"+d.getDate(),score:score,label:mock.label,g:mock.gifted?1:0});LS.set("mockhist",hist.slice(-50));
   var added=0;qs.forEach(function(q){var st=record(q.key,q.u,q.ok);if(st==="added")added++});
   var R=54,C=2*Math.PI*R;
   var h='<section class="stack"><div><p class="eyebrow">'+(mock.capY?mock.capY+' 年會考改編卷結果':mock.gifted?'資優模擬考結果':'模擬考結果')+'</p><h1>答題狀況</h1></div>';
@@ -978,8 +978,9 @@ function account(){
 }
 
 /* ---------- class: board & posts ---------- */
-function boardEntry(p){var st=LS.get("stat",{}),r=0,t=0;Object.keys(st).forEach(function(k){r+=st[k].r;t+=st[k].t});var mh=LS.get("mockhist",[]),mb=null;mh.forEach(function(h){if(mb==null||h.score>mb)mb=h.score});
-  return {n:p.name||"",r:r,t:t,mb:mb,ml:mh.length?mh[mh.length-1].score:null,mc:mh.length,up:firebase.firestore.FieldValue.serverTimestamp()}}
+function isGiftH(h){return !!(h.g||/^資優|改編卷/.test(h.label||""))}
+function boardEntry(p){var st=LS.get("stat",{}),r=0,t=0;Object.keys(st).forEach(function(k){r+=st[k].r;t+=st[k].t});var mh=LS.get("mockhist",[]),mb=null,gb=null;mh.forEach(function(h){if(isGiftH(h)){if(gb==null||h.score>gb)gb=h.score}else if(mb==null||h.score>mb)mb=h.score});
+  return {n:p.name||"",r:r,t:t,mb:mb,gb:gb,ml:mh.length?mh[mh.length-1].score:null,mc:mh.length,up:firebase.firestore.FieldValue.serverTimestamp()}}
 function postOf(d){var x=d.data();return {id:d.id,text:x.text||"",at:x.at&&x.at.toDate?x.at.toDate():null,ed:!!x.edited}}
 function fmtAt(d){return d?(d.getMonth()+1)+"/"+d.getDate()+" "+pad2(d.getHours())+":"+pad2(d.getMinutes()):"剛剛"}
 function postsHTML(ps,canDel){
@@ -988,10 +989,10 @@ function postsHTML(ps,canDel){
 }
 var bMetric="t";
 function boardHTML(list,me){
-  var M={t:["答題數",function(x){return x.t},function(x){return x.t+" 題"}],acc:["答對率",function(x){return x.t>=30?x.r/x.t:null},function(x){return Math.round(x.r/x.t*100)+"%"}],mb:["模擬考最佳",function(x){return x.mb},function(x){return x.mb+" 分"}]};
+  var M={t:["答題數",function(x){return x.t},function(x){return x.t+" 題"}],acc:["答對率",function(x){return x.t>=30?x.r/x.t:null},function(x){return Math.round(x.r/x.t*100)+"%"}],mb:["模擬考最佳",function(x){return x.mb},function(x){return x.mb+" 分"}],gb:["資優模擬考最佳",function(x){return x.gb==null?null:x.gb},function(x){return x.gb+" 分"}]};
   var m=M[bMetric],ok=list.filter(function(x){return m[1](x)!=null}).sort(function(a,b){return m[1](b)-m[1](a)||b.t-a.t}),rest=list.length-ok.length;
   var h='<div class="ranges" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'+Object.keys(M).map(function(k){return '<button class="chip'+(bMetric===k?" on":"")+'" data-bm="'+k+'" aria-pressed="'+(bMetric===k)+'">'+M[k][0]+'</button>'}).join("")+'</div>';
-  if(!ok.length)return h+'<p class="muted">'+(list.length?(bMetric==="acc"?"還沒有人答滿 30 題。":"還沒有人考過模擬考。"):"還沒有同學的資料，同學登入並作答後就會出現。")+'</p>';
+  if(!ok.length)return h+'<p class="muted">'+(list.length?(bMetric==="acc"?"還沒有人答滿 30 題。":bMetric==="gb"?"還沒有人考過資優模擬考或歷屆改編卷。":"還沒有人考過模擬考。"):"還沒有同學的資料，同學登入並作答後就會出現。")+'</p>';
   var rank=0,prev=null;
   h+='<ol class="board">'+ok.map(function(x,i){var v=m[1](x);if(v!==prev){rank=i+1;prev=v}return '<li class="'+(me&&x.uid===me?"me":"")+'"><span class="rk r'+Math.min(rank,4)+'">'+rank+'</span><span class="bn">'+escH(x.n||"同學")+(me&&x.uid===me?'（我）':'')+'</span><span class="bv">'+m[2](x)+'</span></li>'}).join("")+'</ol>';
   if(rest)h+='<p class="muted" style="font-size:14px;margin-top:6px">另有 '+rest+' 人'+(bMetric==="acc"?"作答未滿 30 題":"還沒有成績")+'，暫不列入。</p>';
