@@ -2586,6 +2586,7 @@ CP({"y": 115, "n": 24, "u": "u18", "q": "汽車的實際速率 = 輪胎轉速 ×
 CP({"y": 115, "n": 25, "u": "u09", "q": "汽車時速錶的指示速率 = 儀器測出的輪胎轉速 × 儀器設定的輪胎周長。原本甲、乙兩車儀器測出的轉速與實際轉速相同，設定的輪胎周長也和實際相同。後來甲的儀器故障，測出的轉速比實際轉速低；乙換了新輪胎，新輪胎周長比原本的大，但儀器設定的仍是原本周長。若甲、乙都以指示速率 60 公里／小時行駛，實際速率分別為 p、q 公里／小時，則下列何者正確？", "c": "p &gt; 60，q &gt; 60", "w": ["p &gt; 60，q &lt; 60", "p &lt; 60，q &gt; 60", "p &lt; 60，q &lt; 60"], "e": "甲：指示 = 偏低的轉速 × 正確周長，比實際小，所以實際 p &gt; 60。乙：指示 = 正確轉速 × 偏小的設定周長（實際輪胎較大），比實際小，所以 q &gt; 60。"});
 
 var FB_CONFIG={apiKey:"AIzaSyCgzoDn1YcH5a75qcmnpgGNPuLPLtWVmPQ",authDomain:"juniorhighschoolmath.firebaseapp.com",projectId:"juniorhighschoolmath",storageBucket:"juniorhighschoolmath.firebasestorage.app",messagingSenderId:"704558589195",appId:"1:704558589195:web:0bb5b6cae13b99b88bae0e"};
+var MAIL_URL="https://script.google.com/macros/s/AKfycby1GT_X_ymCEykcEh6omqZJA5KvPssR_59fovrbGKu-dBCU2Z-GrIvdUYvkBjrbkp3RGg/exec";
 
 </script>
 <script>
@@ -3081,8 +3082,8 @@ function teacherCloud(h){
     Promise.all([db().collection("users").where("cls","==",TC.sel).where("tch","==",FB.user.uid).get(),cref.collection("posts").orderBy("at","desc").limit(30).get().catch(function(){return {docs:[]}}),cref.collection("board").get().catch(function(){return {docs:[]}})]).then(function(r){TC.list=r[0].docs.map(cloudToO).sort(function(a,b){return a.n.localeCompare(b.n,"zh-Hant",{numeric:true})});TC.posts=r[1].docs.map(postOf);TC.board=r[2].docs.map(function(d){var x=d.data();x.uid=d.id;return x});tRe()}).catch(function(e){TC.list=[];TC.msg="讀取學生失敗："+e.message;tRe()});return}
   var cc=curClass(),kk=cc?Object.keys(cc.kicked||{}):[];
   if(TC.sel)h+='<div class="jump" role="navigation" aria-label="跳到">'+[["chat","💬 聊天區"],["tposts","📢 公告"],["tboard","🏆 排行榜"],["tstu","📋 學生成績"]].map(function(x){return '<button class="chip" data-jump="'+x[0]+'">'+x[1]+'</button>'}).join("")+'</div>';
-  if(TC.sel)h+='<div class="sheet" id="tposts"><h2>班級公告</h2><p class="muted" style="margin:4px 0 10px">發布後，班上學生會在首頁和「班級」頁看到。</p><textarea class="code" id="pin" rows="3" maxlength="500" placeholder="例如：週五小考範圍是相似形，記得做完練習 10 題。" style="font-family:inherit;font-size:15px"></textarea><div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap"><button class="btn" id="padd">發布公告</button>'+(LS.get("mailurl","")?'<label class="mailck"><input type="checkbox" id="pmail"'+(LS.get("mailon",false)?" checked":"")+'> 同時寄 Gmail 給全班</label>':'')+'<span class="muted" id="pmsg" style="font-size:14px"></span></div>'+
-    '<details class="mailset"><summary>Gmail 寄信設定</summary><p class="muted" style="font-size:14px;margin:6px 0">貼上 Google Apps Script 部署後的「網頁應用程式網址」（https://script.google.com/macros/s/…/exec）。設定只存在這台裝置。</p><div class="sprint-in"><input id="murl" placeholder="https://script.google.com/macros/s/…/exec" value="'+escH(LS.get("mailurl",""))+'" aria-label="寄信網址"><button class="btn ghost" id="msave">儲存</button></div><p class="muted" id="mmsg" style="font-size:14px"></p></details>'+postsHTML(TC.posts||[],true)+'</div>'+
+  if(TC.sel)h+='<div class="sheet" id="tposts"><h2>班級公告</h2><p class="muted" style="margin:4px 0 10px">發布後，班上學生會在首頁和「班級」頁看到。</p><textarea class="code" id="pin" rows="3" maxlength="500" placeholder="例如：週五小考範圍是相似形，記得做完練習 10 題。" style="font-family:inherit;font-size:15px"></textarea><div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap"><button class="btn" id="padd">發布公告</button>'+(mailUrl()?'<label class="mailck"><input type="checkbox" id="pmail"'+(LS.get("mailon",true)?" checked":"")+'> 同時寄 Gmail 給全班</label>':'')+'<span class="muted" id="pmsg" style="font-size:14px"></span></div>'+
+    '<details class="mailset"><summary>Gmail 寄信設定</summary><p class="muted" style="font-size:14px;margin:6px 0">貼上 Google Apps Script 部署後的「網頁應用程式網址」（https://script.google.com/macros/s/…/exec）。設定只存在這台裝置。</p><div class="sprint-in"><input id="murl" placeholder="https://script.google.com/macros/s/…/exec" value="'+escH(mailUrl())+'" aria-label="寄信網址"><button class="btn ghost" id="msave">儲存</button></div><p class="muted" id="mmsg" style="font-size:14px"></p></details>'+postsHTML(TC.posts||[],true)+'</div>'+
     '<div class="sheet" id="tboard"><h2>班級排行榜</h2><p class="muted" style="margin:4px 0 10px">學生也看得到這個排行榜（只限同班）。</p>'+boardHTML(TC.board||[],null)+'</div><div class="sheet" id="chat"></div>';
   if(TC.sel)h+='<div id="tstu"></div>'+(TC.list.length?classHTML(TC.list):'<div class="sheet"><p>這個班級還沒有學生加入。</p></div>')+
     (kk.length?'<div class="sheet"><h2>已踢出的學生</h2><p class="muted" style="margin:4px 0 10px">這些學生不能再用班級代碼加入，按「允許重新加入」後才可以。</p><ul class="tasks">'+kk.map(function(uid){return '<li><div class="tt">'+escH(cc.kicked[uid])+'</div><button class="btn ghost go" data-unk="'+uid+'">允許重新加入</button></li>'}).join("")+'</ul></div>':'')+
@@ -3378,8 +3379,9 @@ function startChat(code,mod,tg){
   btn.onclick=send;
   inp.onkeydown=function(e){if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();send()}};
 }
+function mailUrl(){var v=LS.get("mailurl",null);return v!=null&&v!==""?v:(typeof MAIL_URL!=="undefined"?MAIL_URL:"")}
 function sendMail(code,cname,text){
-  var url=LS.get("mailurl","");if(!url)return Promise.resolve({ok:false,err:"還沒設定寄信網址"});
+  var url=mailUrl();if(!url)return Promise.resolve({ok:false,err:"還沒設定寄信網址"});
   return firebase.auth().currentUser.getIdToken().then(function(tok){
     return fetch(url,{method:"POST",body:JSON.stringify({idToken:tok,code:code,cname:cname,text:text,link:location.href.replace(/teacher\.html.*$/,"")+"#class"})});
   }).then(function(r){return r.json()}).catch(function(e){return {ok:false,err:"連不到寄信服務（"+e.message+"）"}});
