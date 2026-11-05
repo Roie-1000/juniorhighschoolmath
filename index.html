@@ -138,6 +138,9 @@ details.wk{margin-bottom:8px}
 .cm.mine .cmb{border-radius:12px 12px 2px 12px;background:var(--teal-soft);border-color:transparent}
 .cm.tch .cmb{border-color:var(--teal);border-width:2px}
 .tbadge{display:inline-block;background:var(--teal);color:var(--sheet);border-radius:4px;padding:0 6px;margin-right:4px;font-size:11px}
+.mailck{display:inline-flex;align-items:center;gap:6px;font-size:15px;cursor:pointer}
+.mailck input{width:18px;height:18px;accent-color:var(--teal)}
+.mailset{margin-top:10px;font-size:15px}.mailset summary{cursor:pointer;color:var(--muted)}
 #toasts{position:fixed;right:16px;bottom:16px;z-index:50;display:flex;flex-direction:column;gap:8px;max-width:min(340px,calc(100vw - 32px))}
 .toast{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 14px;border:0;border-left:4px solid var(--teal);border-radius:8px;background:var(--bar);color:var(--bar-ink);font:inherit;font-size:14px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.3);transition:opacity .4s,transform .4s}
 .toast b{font-size:15px}.toast span{opacity:.85;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
@@ -3078,7 +3081,8 @@ function teacherCloud(h){
     Promise.all([db().collection("users").where("cls","==",TC.sel).where("tch","==",FB.user.uid).get(),cref.collection("posts").orderBy("at","desc").limit(30).get().catch(function(){return {docs:[]}}),cref.collection("board").get().catch(function(){return {docs:[]}})]).then(function(r){TC.list=r[0].docs.map(cloudToO).sort(function(a,b){return a.n.localeCompare(b.n,"zh-Hant",{numeric:true})});TC.posts=r[1].docs.map(postOf);TC.board=r[2].docs.map(function(d){var x=d.data();x.uid=d.id;return x});tRe()}).catch(function(e){TC.list=[];TC.msg="讀取學生失敗："+e.message;tRe()});return}
   var cc=curClass(),kk=cc?Object.keys(cc.kicked||{}):[];
   if(TC.sel)h+='<div class="jump" role="navigation" aria-label="跳到">'+[["chat","💬 聊天區"],["tposts","📢 公告"],["tboard","🏆 排行榜"],["tstu","📋 學生成績"]].map(function(x){return '<button class="chip" data-jump="'+x[0]+'">'+x[1]+'</button>'}).join("")+'</div>';
-  if(TC.sel)h+='<div class="sheet" id="tposts"><h2>班級公告</h2><p class="muted" style="margin:4px 0 10px">發布後，班上學生會在首頁和「班級」頁看到。</p><textarea class="code" id="pin" rows="3" maxlength="500" placeholder="例如：週五小考範圍是相似形，記得做完練習 10 題。" style="font-family:inherit;font-size:15px"></textarea><div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap"><button class="btn" id="padd">發布公告</button><span class="muted" id="pmsg" style="font-size:14px"></span></div>'+postsHTML(TC.posts||[],true)+'</div>'+
+  if(TC.sel)h+='<div class="sheet" id="tposts"><h2>班級公告</h2><p class="muted" style="margin:4px 0 10px">發布後，班上學生會在首頁和「班級」頁看到。</p><textarea class="code" id="pin" rows="3" maxlength="500" placeholder="例如：週五小考範圍是相似形，記得做完練習 10 題。" style="font-family:inherit;font-size:15px"></textarea><div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap"><button class="btn" id="padd">發布公告</button>'+(LS.get("mailurl","")?'<label class="mailck"><input type="checkbox" id="pmail"'+(LS.get("mailon",false)?" checked":"")+'> 同時寄 Gmail 給全班</label>':'')+'<span class="muted" id="pmsg" style="font-size:14px"></span></div>'+
+    '<details class="mailset"><summary>Gmail 寄信設定</summary><p class="muted" style="font-size:14px;margin:6px 0">貼上 Google Apps Script 部署後的「網頁應用程式網址」（https://script.google.com/macros/s/…/exec）。設定只存在這台裝置。</p><div class="sprint-in"><input id="murl" placeholder="https://script.google.com/macros/s/…/exec" value="'+escH(LS.get("mailurl",""))+'" aria-label="寄信網址"><button class="btn ghost" id="msave">儲存</button></div><p class="muted" id="mmsg" style="font-size:14px"></p></details>'+postsHTML(TC.posts||[],true)+'</div>'+
     '<div class="sheet" id="tboard"><h2>班級排行榜</h2><p class="muted" style="margin:4px 0 10px">學生也看得到這個排行榜（只限同班）。</p>'+boardHTML(TC.board||[],null)+'</div><div class="sheet" id="chat"></div>';
   if(TC.sel)h+='<div id="tstu"></div>'+(TC.list.length?classHTML(TC.list):'<div class="sheet"><p>這個班級還沒有學生加入。</p></div>')+
     (kk.length?'<div class="sheet"><h2>已踢出的學生</h2><p class="muted" style="margin:4px 0 10px">這些學生不能再用班級代碼加入，按「允許重新加入」後才可以。</p><ul class="tasks">'+kk.map(function(uid){return '<li><div class="tt">'+escH(cc.kicked[uid])+'</div><button class="btn ghost go" data-unk="'+uid+'">允許重新加入</button></li>'}).join("")+'</ul></div>':'')+
@@ -3090,8 +3094,17 @@ function teacherCloud(h){
   var pa=document.getElementById("padd");if(pa)pa.onclick=function(){
     var t=document.getElementById("pin").value.trim(),m=document.getElementById("pmsg");if(!t){m.textContent="請先輸入公告內容。";return}
     pa.disabled=true;db().collection("classes").doc(TC.sel).collection("posts").add({text:t,at:firebase.firestore.FieldValue.serverTimestamp(),by:FB.user.displayName||""})
-      .then(function(){TC.list=null;TC.msg="公告已發布。";tRe()}).catch(function(e){pa.disabled=false;m.textContent="發布失敗："+e.message+"（請確認 Firestore 規則已更新）"});
+      .then(function(){
+        var ck=document.getElementById("pmail"),cname=(curClass()||{}).name||"";
+        if(!(ck&&ck.checked)){TC.list=null;TC.msg="公告已發布。";tRe();return}
+        m.textContent="公告已發布，寄信中…";
+        return sendMail(TC.sel,cname,t).then(function(r){TC.list=null;TC.msg=r.ok?"公告已發布，並寄信給 "+r.n+" 位學生。":"公告已發布，但寄信失敗："+(r.err||"未知錯誤");tRe()});
+      }).catch(function(e){pa.disabled=false;m.textContent="發布失敗："+e.message+"（請確認 Firestore 規則已更新）"});
   };
+  var pmk=document.getElementById("pmail");if(pmk)pmk.onchange=function(){LS.raw("mailon",pmk.checked)};
+  var ms=document.getElementById("msave");if(ms)ms.onclick=function(){var v=document.getElementById("murl").value.trim(),mm=document.getElementById("mmsg");
+    if(v&&!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(v)){mm.textContent="網址格式不對，應該是 https://script.google.com/macros/s/…/exec";return}
+    LS.raw("mailurl",v);if(v)LS.raw("mailon",true);TC.msg=v?"寄信網址已儲存，發公告時可以勾選「同時寄 Gmail」。":"已清除寄信網址。";tRe()};
   app.querySelectorAll("[data-pedit]").forEach(function(b){b.onclick=function(){
     var id=b.dataset.pedit,li=b.closest("li"),post=null;(TC.posts||[]).forEach(function(x){if(x.id===id)post=x});if(!post)return;
     li.innerHTML='<textarea class="code" rows="3" maxlength="500" style="font-family:inherit;font-size:15px;margin-top:0" aria-label="編輯公告"></textarea><div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap"><button class="btn" data-psave>儲存</button><button class="btn ghost" data-pcancel>取消</button><span class="muted" style="font-size:14px" data-pm></span></div>';
@@ -3364,6 +3377,12 @@ function startChat(code,mod,tg){
   }
   btn.onclick=send;
   inp.onkeydown=function(e){if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();send()}};
+}
+function sendMail(code,cname,text){
+  var url=LS.get("mailurl","");if(!url)return Promise.resolve({ok:false,err:"還沒設定寄信網址"});
+  return firebase.auth().currentUser.getIdToken().then(function(tok){
+    return fetch(url,{method:"POST",body:JSON.stringify({idToken:tok,code:code,cname:cname,text:text,link:location.href.replace(/teacher\.html.*$/,"")+"#class"})});
+  }).then(function(r){return r.json()}).catch(function(e){return {ok:false,err:"連不到寄信服務（"+e.message+"）"}});
 }
 /* ---------- 通知：網站開著時，新公告／聊天／私訊跳通知 ---------- */
 var NT={key:"",un:[],t0:0,last:{}};
