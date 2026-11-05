@@ -130,6 +130,10 @@ details.wk{margin-bottom:8px}
 .cm.mine .cmb{border-radius:12px 12px 2px 12px;background:var(--teal-soft);border-color:transparent}
 .cm.tch .cmb{border-color:var(--teal);border-width:2px}
 .tbadge{display:inline-block;background:var(--teal);color:var(--sheet);border-radius:4px;padding:0 6px;margin-right:4px;font-size:11px}
+#toasts{position:fixed;right:16px;bottom:16px;z-index:50;display:flex;flex-direction:column;gap:8px;max-width:min(340px,calc(100vw - 32px))}
+.toast{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 14px;border:0;border-left:4px solid var(--teal);border-radius:8px;background:var(--bar);color:var(--bar-ink);font:inherit;font-size:14px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.3);transition:opacity .4s,transform .4s}
+.toast b{font-size:15px}.toast span{opacity:.85;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.toast.out{opacity:0;transform:translateY(8px)}
 .ctabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .cdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);margin-left:6px;vertical-align:middle}
 .cdot[hidden]{display:none}
@@ -1052,13 +1056,15 @@ function chatShell(note,mod){
   var pick=chatTab==="dm"?'<div class="dmpick"><label for="dmsel">私訊對象</label><select id="dmsel">'+(mod?'<option value="">選擇學生…</option>':'')+dmPeers(mod).map(function(x){return '<option value="'+x.v+'"'+(dmSid===x.v?" selected":"")+'>'+escH(x.n)+'</option>'}).join("")+'</select></div>':'';
   var nt=chatTab!=="dm"?note:mod?"只有你和這位學生看得到。":dmSid==="t"?"只有你和老師看得到，有問題可以直接問老師。":"只有你們兩個人看得到，請友善發言。同學要登入並加入班級，才會出現在名單裡。";
   return '<div class="sheet" id="chat"><h2>'+(chatTab==="dm"?"私訊":"班級聊天區")+'</h2>'+tabs+pick+'<p class="muted" style="margin:8px 0 10px">'+nt+'</p><div class="chatlist" id="chatlist" aria-live="polite"><p class="muted">讀取中…</p></div>'+
-    '<div class="chatin"><textarea id="chatin" rows="1" maxlength="300" placeholder="輸入訊息…" aria-label="輸入訊息"></textarea><button class="btn" id="chatsend">送出</button></div><p class="muted" id="chatmsg" style="font-size:13px;margin-top:4px"></p></div>';
+    '<div class="chatin"><textarea id="chatin" rows="1" maxlength="300" placeholder="輸入訊息…" aria-label="輸入訊息"></textarea><button class="btn" id="chatsend">送出</button></div><p class="muted" id="chatmsg" style="font-size:13px;margin-top:4px"></p>'+ntBar()+'</div>';
 }
 function mountChat(code,mod,note){
+  startNotify();
   var box=document.getElementById("chat");if(!box)return;
   var tmp=document.createElement("div");tmp.innerHTML=chatShell(note,mod);box.replaceWith(tmp.firstChild);
   document.querySelectorAll("[data-ct]").forEach(function(b){b.onclick=function(){chatTab=b.dataset.ct;mountChat(code,mod,note)}});
   var sel=document.getElementById("dmsel");if(sel)sel.onchange=function(){dmSid=sel.value;mountChat(code,mod,note)};
+  bindNt(function(){mountChat(code,mod,note)});
   var tg=dmTarget(mod),me=FB.user.uid;
   if(chatTab==="dm"&&!tg){stopChat();document.getElementById("chatlist").innerHTML='<p class="muted">先在上面選一位學生。</p>';document.querySelector("#chat .chatin").hidden=true}
   else startChat(code,mod,tg);
@@ -1103,12 +1109,67 @@ function startChat(code,mod,tg){
     chatLast=Date.now();btn.disabled=true;msg.textContent="";
     var nm=mod?(FB.user.displayName||"老師"):((FB.prof&&FB.prof.name)||FB.user.displayName||"同學");
     ref.add({uid:me,name:nm,role:mod?"t":"s",text:t,at:firebase.firestore.FieldValue.serverTimestamp()})
-      .then(function(){if(tg){var meta={by:tg.col==="pm"?me:(mod?"t":"s"),at:firebase.firestore.FieldValue.serverTimestamp()};if(tg.m)meta.m=tg.m;cref.collection(tg.col).doc(tg.id).set(meta,{merge:true}).catch(function(){})}})
+      .then(function(){if(tg){var meta={by:tg.col==="pm"?me:(mod?"t":"s"),at:firebase.firestore.FieldValue.serverTimestamp(),last:t.slice(0,60),n:nm};if(tg.m)meta.m=tg.m;cref.collection(tg.col).doc(tg.id).set(meta,{merge:true}).catch(function(){})}})
       .then(function(){inp.value="";btn.disabled=false;inp.focus();var el=document.getElementById("chatlist");if(el)el.scrollTop=el.scrollHeight})
       .catch(function(e){btn.disabled=false;msg.textContent="送出失敗："+e.message});
   }
   btn.onclick=send;
   inp.onkeydown=function(e){if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();send()}};
+}
+/* ---------- 通知：網站開著時，新公告／聊天／私訊跳通知 ---------- */
+var NT={key:"",un:[],t0:0,last:{}};
+function ntCan(){return typeof Notification!=="undefined"}
+function ntOn(){return ntCan()&&Notification.permission==="granted"&&LS.get("notify",true)!==false}
+function stopNotify(){NT.un.forEach(function(f){try{f()}catch(e){}});NT.un=[];NT.key=""}
+function startNotify(){
+  if(!FB.on||!FB.ready||!FB.user||!FB.prof){stopNotify();return}
+  var code=TM?TC.sel:FB.prof.cls;if(!code){stopNotify();return}
+  var me=FB.user.uid,key=me+":"+code+":"+(TM?"t":"s");if(NT.key===key)return;
+  stopNotify();NT.key=key;NT.t0=Date.now();NT.last={};
+  var cref=db().collection("classes").doc(code);
+  function at(x){return x&&x.at&&x.at.toDate?x.at.toDate().getTime():0}
+  function fresh(id,t){if(t<=NT.t0||t<=(NT.last[id]||0))return false;NT.last[id]=t;return true}
+  function nm(uid){var l=TM?(TC.list||[]):(CS.board||[]);for(var i=0;i<l.length;i++)if(l[i].uid===uid)return l[i].n||"同學";return "同學"}
+  function snap(q,f){try{NT.un.push(q.onSnapshot(f,function(){}))}catch(e){}}
+  if(!TM)snap(cref.collection("posts").orderBy("at","desc").limit(1),function(q){var d=q.docs[0];if(!d)return;var x=d.data({serverTimestamps:"estimate"});if(fresh("post",at(x)))notify("老師發布了新公告",x.text||"","#class","post")});
+  snap(cref.collection("chat").orderBy("at","desc").limit(1),function(q){var d=q.docs[0];if(!d)return;var x=d.data({serverTimestamps:"estimate"});if(x.uid!==me&&fresh("chat",at(x)))notify("班級聊天・"+(x.role==="t"?"老師":(x.name||"同學")),x.text||"",TM?"#teacher":"#class","all")});
+  if(TM)snap(cref.collection("dm"),function(q){q.docs.forEach(function(d){var x=d.data({serverTimestamps:"estimate"});if(x.by==="s"&&fresh("dm:"+d.id,at(x)))notify("私訊・"+(x.n||nm(d.id)),x.last||"傳了一則私訊給你","#teacher","dm:"+d.id)})});
+  else{
+    snap(cref.collection("dm").doc(me),function(d){if(!d.exists)return;var x=d.data({serverTimestamps:"estimate"});if(x.by==="t"&&fresh("dm",at(x)))notify("老師私訊你",x.last||"傳了一則私訊給你","#class","dm:t")});
+    snap(cref.collection("pm").where("m","array-contains",me),function(q){q.docs.forEach(function(d){var x=d.data({serverTimestamps:"estimate"});if(x.by&&x.by!==me&&fresh("pm:"+d.id,at(x)))notify("私訊・"+(x.n||nm(x.by)),x.last||"傳了一則私訊給你","#class","dm:"+x.by)})});
+  }
+}
+function ntViewing(where){
+  if(document.visibilityState!=="visible")return false;
+  var h=location.hash||(TM?"#teacher":"#home");if(!document.getElementById("chat")||(h!=="#class"&&h!=="#teacher"))return where==="post"&&h==="#class";
+  if(where==="all")return chatTab==="all";
+  if(where.indexOf("dm:")===0)return chatTab==="dm"&&dmSid===where.slice(3);
+  return h==="#class";
+}
+function notify(title,body,hash,where){
+  if(ntViewing(where))return;
+  body=String(body).slice(0,80);
+  if(document.visibilityState==="visible")toast(title,body,hash,where);
+  else if(ntOn()){try{var n=new Notification(title,{body:body,tag:"hk-"+where,icon:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%239a3f17'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white'%3E%E6%95%B8%3C/text%3E%3C/svg%3E"});n.onclick=function(){window.focus();ntGo(hash,where);n.close()}}catch(e){}}
+}
+function ntGo(hash,where){if(where.indexOf("dm:")===0){chatTab="dm";dmSid=where.slice(3)}else if(where==="all")chatTab="all";if(location.hash===hash)route();else location.hash=hash;setTimeout(function(){var c=document.getElementById(where==="post"?"annc":"chat");if(c)c.scrollIntoView({behavior:"smooth",block:"start"})},400)}
+function toast(title,body,hash,where){
+  var w=document.getElementById("toasts");if(!w){w=document.createElement("div");w.id="toasts";w.setAttribute("aria-live","polite");document.body.appendChild(w)}
+  var t=document.createElement("button");t.className="toast";t.innerHTML='<b>'+escH(title)+'</b><span>'+escH(body)+'</span>';
+  t.onclick=function(){t.remove();ntGo(hash,where)};w.appendChild(t);
+  setTimeout(function(){t.classList.add("out");setTimeout(function(){t.remove()},400)},6000);
+}
+function ntBar(){
+  if(!ntCan())return '<p class="muted ntbar" style="font-size:13px;margin-top:8px">這個瀏覽器不支援通知（iPhone 要先把網站加到主畫面）。網站開著時，新訊息會在畫面右下角提示。</p>';
+  var p=Notification.permission;
+  if(p==="granted")return '<p class="muted ntbar" style="font-size:13px;margin-top:8px">🔔 '+(LS.get("notify",true)!==false?'通知已開啟：網站開著（包括在背景）時，有新公告或訊息會跳通知。<button class="lnk" id="ntoff">關閉</button>':'通知已關閉。<button class="lnk" id="nton">開啟</button>')+'</p>';
+  if(p==="denied")return '<p class="muted ntbar" style="font-size:13px;margin-top:8px">🔕 通知被瀏覽器封鎖了，要到瀏覽器的網站設定裡改成「允許」。</p>';
+  return '<p class="ntbar" style="margin-top:8px"><button class="btn ghost" id="ntask">🔔 開啟通知</button> <span class="muted" style="font-size:13px">有新公告、聊天或私訊時提醒你</span></p>';
+}
+function bindNt(re){
+  var a=document.getElementById("ntask");if(a)a.onclick=function(){Notification.requestPermission().then(function(){LS.raw("notify",true);re()})};
+  var o=document.getElementById("ntoff");if(o)o.onclick=function(){LS.raw("notify",false);re()};
+  var n=document.getElementById("nton");if(n)n.onclick=function(){LS.raw("notify",true);re()};
 }
 var anncAt=0,anncData=null;
 function loadAnnc(){
@@ -1231,6 +1292,7 @@ function route(){
   else home();
   var na=document.getElementById("navacc");if(na)na.classList.toggle("on",hsh==="account");
   if(hsh!=="mock")window.scrollTo(0,0);
+  startNotify();
 }
 function hh(){var t=document.querySelector("header.top");if(t)document.documentElement.style.setProperty("--hh",t.offsetHeight+"px")}
 window.addEventListener("resize",hh);hh();
