@@ -3285,10 +3285,22 @@ function stopChat(){if(chatUnsub){try{chatUnsub()}catch(e){}chatUnsub=null}if(dm
 var dmUnsub=null,chatTab="all",dmSid="",DMI={};
 function dmSeen(code,sid){return LS.get("dmseen:"+(FB.user?FB.user.uid:"")+":"+code+":"+sid,0)}
 function dmMark(code,sid){LS.raw("dmseen:"+(FB.user?FB.user.uid:"")+":"+code+":"+sid,Date.now())}
+function pairId(a,b){return [a,b].sort().join("_")}
+function dmPeers(mod){
+  if(mod)return (TC.list||[]).map(function(x){return {v:x.uid,n:x.n}});
+  var me=FB.user.uid;return [{v:"t",n:"老師"}].concat((CS.board||[]).filter(function(x){return x.uid!==me}).map(function(x){return {v:x.uid,n:x.n||"同學"}}).sort(function(a,b){return a.n.localeCompare(b.n,"zh-Hant",{numeric:true})}));
+}
+function dmTarget(mod){
+  if(chatTab!=="dm")return null;var me=FB.user.uid;
+  if(mod)return dmSid?{col:"dm",id:dmSid,key:dmSid}:null;
+  if(!dmSid||dmSid==="t")return {col:"dm",id:me,key:"t"};
+  return {col:"pm",id:pairId(me,dmSid),m:[me,dmSid].sort(),key:dmSid};
+}
 function chatShell(note,mod){
-  var tabs='<div class="ctabs" role="tablist"><button class="chip'+(chatTab==="all"?" on":"")+'" data-ct="all" role="tab" aria-selected="'+(chatTab==="all")+'">全班聊天</button><button class="chip'+(chatTab==="dm"?" on":"")+'" data-ct="dm" role="tab" aria-selected="'+(chatTab==="dm")+'">'+(mod?"個別私訊":"私訊老師")+'<span class="cdot" id="dmdot" hidden></span></button></div>';
-  var pick=mod&&chatTab==="dm"?'<div class="dmpick"><label for="dmsel">私訊對象</label><select id="dmsel"><option value="">選擇學生…</option>'+(TC.list||[]).map(function(x){return '<option value="'+x.uid+'"'+(dmSid===x.uid?" selected":"")+'>'+escH(x.n)+'</option>'}).join("")+'</select></div>':'';
-  var nt=chatTab==="dm"?(mod?"只有你和這位學生看得到。":"只有你和老師看得到，有問題可以直接問老師。"):note;
+  if(!mod&&!dmSid)dmSid="t";
+  var tabs='<div class="ctabs" role="tablist"><button class="chip'+(chatTab==="all"?" on":"")+'" data-ct="all" role="tab" aria-selected="'+(chatTab==="all")+'">全班聊天</button><button class="chip'+(chatTab==="dm"?" on":"")+'" data-ct="dm" role="tab" aria-selected="'+(chatTab==="dm")+'">個別私訊<span class="cdot" id="dmdot" hidden></span></button></div>';
+  var pick=chatTab==="dm"?'<div class="dmpick"><label for="dmsel">私訊對象</label><select id="dmsel">'+(mod?'<option value="">選擇學生…</option>':'')+dmPeers(mod).map(function(x){return '<option value="'+x.v+'"'+(dmSid===x.v?" selected":"")+'>'+escH(x.n)+'</option>'}).join("")+'</select></div>':'';
+  var nt=chatTab!=="dm"?note:mod?"只有你和這位學生看得到。":dmSid==="t"?"只有你和老師看得到，有問題可以直接問老師。":"只有你們兩個人看得到，請友善發言。同學要登入並加入班級，才會出現在名單裡。";
   return '<div class="sheet" id="chat"><h2>'+(chatTab==="dm"?"私訊":"班級聊天區")+'</h2>'+tabs+pick+'<p class="muted" style="margin:8px 0 10px">'+nt+'</p><div class="chatlist" id="chatlist" aria-live="polite"><p class="muted">讀取中…</p></div>'+
     '<div class="chatin"><textarea id="chatin" rows="1" maxlength="300" placeholder="輸入訊息…" aria-label="輸入訊息"></textarea><button class="btn" id="chatsend">送出</button></div><p class="muted" id="chatmsg" style="font-size:13px;margin-top:4px"></p></div>';
 }
@@ -3297,24 +3309,34 @@ function mountChat(code,mod,note){
   var tmp=document.createElement("div");tmp.innerHTML=chatShell(note,mod);box.replaceWith(tmp.firstChild);
   document.querySelectorAll("[data-ct]").forEach(function(b){b.onclick=function(){chatTab=b.dataset.ct;mountChat(code,mod,note)}});
   var sel=document.getElementById("dmsel");if(sel)sel.onchange=function(){dmSid=sel.value;mountChat(code,mod,note)};
-  var sid=chatTab==="dm"?(mod?dmSid:FB.user.uid):"";
-  if(chatTab==="dm"&&mod&&!sid){stopChat();document.getElementById("chatlist").innerHTML='<p class="muted">先在上面選一位學生。</p>';document.querySelector("#chat .chatin").hidden=true}
-  else startChat(code,mod,sid);
-  /* 未讀提示 */
-  var cref=db().collection("classes").doc(code).collection("dm");
-  function dots(){var dot=document.getElementById("dmdot"),any=false;
-    Object.keys(DMI).forEach(function(k){var x=DMI[k];if(x.by===(mod?"s":"t")&&x.at>dmSeen(code,k)&&!(chatTab==="dm"&&k===sid))any=true});
+  var tg=dmTarget(mod),me=FB.user.uid;
+  if(chatTab==="dm"&&!tg){stopChat();document.getElementById("chatlist").innerHTML='<p class="muted">先在上面選一位學生。</p>';document.querySelector("#chat .chatin").hidden=true}
+  else startChat(code,mod,tg);
+  /* 未讀提示：DMI 以下拉選單的值為鍵 */
+  var cref=db().collection("classes").doc(code),A={},B={};
+  function dots(){DMI={};Object.keys(A).forEach(function(k){DMI[k]=A[k]});Object.keys(B).forEach(function(k){DMI[k]=B[k]});
+    var dot=document.getElementById("dmdot"),any=false,cur=tg?tg.key:"";
+    function isNew(k){var x=DMI[k];return x&&x.by!==me&&x.by!==(mod?"t":"s")&&x.at>dmSeen(code,k)&&k!==cur}
+    Object.keys(DMI).forEach(function(k){if(isNew(k))any=true});
     if(dot)dot.hidden=!any;
-    var s2=document.getElementById("dmsel");if(s2)Array.prototype.forEach.call(s2.options,function(o){if(!o.value)return;var x=DMI[o.value],nw=x&&x.by==="s"&&x.at>dmSeen(code,o.value)&&o.value!==sid;o.textContent=o.textContent.replace(/^● /,"");if(nw)o.textContent="● "+o.textContent});}
-  function put(d){if(!d.exists)return;var x=d.data({serverTimestamps:"estimate"});DMI[d.id]={by:x.by,at:x.at&&x.at.toDate?x.at.toDate().getTime():0}}
-  try{dmUnsub=mod?cref.onSnapshot(function(r){DMI={};r.docs.forEach(put);dots()},function(){}):cref.doc(FB.user.uid).onSnapshot(function(d){DMI={};put(d);dots()},function(){})}catch(e){}
+    var s2=document.getElementById("dmsel");if(s2)Array.prototype.forEach.call(s2.options,function(o){if(!o.value)return;o.textContent=o.textContent.replace(/^● /,"");if(isNew(o.value))o.textContent="● "+o.textContent});}
+  function at(x){return x.at&&x.at.toDate?x.at.toDate().getTime():0}
+  var un=[];
+  try{
+    if(mod)un.push(cref.collection("dm").onSnapshot(function(r){A={};r.docs.forEach(function(d){var x=d.data({serverTimestamps:"estimate"});A[d.id]={by:x.by,at:at(x)}});dots()},function(){}));
+    else{
+      un.push(cref.collection("dm").doc(me).onSnapshot(function(d){A={};if(d.exists){var x=d.data({serverTimestamps:"estimate"});A.t={by:x.by,at:at(x)}}dots()},function(){}));
+      un.push(cref.collection("pm").where("m","array-contains",me).onSnapshot(function(r){B={};r.docs.forEach(function(d){var x=d.data({serverTimestamps:"estimate"}),o=(x.m||[]).filter(function(u){return u!==me})[0];if(o)B[o]={by:x.by,at:at(x)}});dots()},function(){}));
+    }
+  }catch(e){}
+  dmUnsub=function(){un.forEach(function(f){try{f()}catch(e){}})};
   dots();
 }
-function startChat(code,mod,sid){
+function startChat(code,mod,tg){
   stopChat();
   var list=document.getElementById("chatlist"),inp=document.getElementById("chatin"),btn=document.getElementById("chatsend"),msg=document.getElementById("chatmsg");
   if(!list||!FB.user)return;
-  var me=FB.user.uid,cref=db().collection("classes").doc(code),ref=sid?cref.collection("dm").doc(sid).collection("msgs"):cref.collection("chat");
+  var me=FB.user.uid,cref=db().collection("classes").doc(code),ref=tg?cref.collection(tg.col).doc(tg.id).collection("msgs"):cref.collection("chat"),sid=tg?tg.key:"";
   if(sid)dmMark(code,sid);
   chatUnsub=ref.orderBy("at","desc").limit(60).onSnapshot(function(q){
     var el=document.getElementById("chatlist");if(!el)return;
@@ -3331,7 +3353,7 @@ function startChat(code,mod,sid){
     chatLast=Date.now();btn.disabled=true;msg.textContent="";
     var nm=mod?(FB.user.displayName||"老師"):((FB.prof&&FB.prof.name)||FB.user.displayName||"同學");
     ref.add({uid:me,name:nm,role:mod?"t":"s",text:t,at:firebase.firestore.FieldValue.serverTimestamp()})
-      .then(function(){if(sid)cref.collection("dm").doc(sid).set({by:mod?"t":"s",at:firebase.firestore.FieldValue.serverTimestamp(),last:t.slice(0,40)},{merge:true}).catch(function(){})})
+      .then(function(){if(tg){var meta={by:tg.col==="pm"?me:(mod?"t":"s"),at:firebase.firestore.FieldValue.serverTimestamp()};if(tg.m)meta.m=tg.m;cref.collection(tg.col).doc(tg.id).set(meta,{merge:true}).catch(function(){})}})
       .then(function(){inp.value="";btn.disabled=false;inp.focus();var el=document.getElementById("chatlist");if(el)el.scrollTop=el.scrollHeight})
       .catch(function(e){btn.disabled=false;msg.textContent="送出失敗："+e.message});
   }

@@ -74,6 +74,25 @@ service cloud.firestore {
             || (request.auth != null && resource.data.uid == request.auth.uid);
         }
       }
+      // 同學私聊：只有兩位當事人看得到（pid 是兩人 uid 排序後用 _ 連接）
+      match /pm/{pid} {
+        allow read: if request.auth != null && request.auth.uid in resource.data.m && isMember(code);
+        allow create, update: if request.auth != null && isMember(code)
+          && request.auth.uid in pid.split('_')
+          && request.resource.data.m == pid.split('_')
+          && request.resource.data.by == request.auth.uid;
+        match /msgs/{mid} {
+          allow read: if request.auth != null && request.auth.uid in pid.split('_') && isMember(code);
+          allow create: if request.auth != null && request.auth.uid in pid.split('_') && isMember(code)
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.role == "s"
+            && request.resource.data.text is string
+            && request.resource.data.text.size() > 0
+            && request.resource.data.text.size() <= 300
+            && request.resource.data.at == request.time;
+          allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+        }
+      }
     }
   }
 }
