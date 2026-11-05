@@ -26,6 +26,9 @@ service cloud.firestore {
       return request.auth != null
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.cls == code;
     }
+    function dmOk(code, sid) {
+      return isTeacher(code) || (request.auth != null && request.auth.uid == sid && isMember(code));
+    }
     match /classes/{code} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.teacher == request.auth.uid;
@@ -53,6 +56,23 @@ service cloud.firestore {
           && (request.resource.data.role == "s" || (request.resource.data.role == "t" && isTeacher(code)));
         allow delete: if isTeacher(code)
           || (request.auth != null && resource.data.uid == request.auth.uid);
+      }
+      // 私訊：只有老師和那位學生本人可讀、可發言
+      match /dm/{sid} {
+        allow read, create, update: if dmOk(code, sid);
+        allow delete: if isTeacher(code);
+        match /msgs/{mid} {
+          allow read: if dmOk(code, sid);
+          allow create: if dmOk(code, sid)
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.text is string
+            && request.resource.data.text.size() > 0
+            && request.resource.data.text.size() <= 300
+            && request.resource.data.at == request.time
+            && (request.resource.data.role == "s" || (request.resource.data.role == "t" && isTeacher(code)));
+          allow delete: if isTeacher(code)
+            || (request.auth != null && resource.data.uid == request.auth.uid);
+        }
       }
     }
   }
